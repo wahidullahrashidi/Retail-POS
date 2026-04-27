@@ -15,6 +15,7 @@ use App\Services\SaleService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use App\Models\Product;
 
 class POSController extends Controller
 {
@@ -24,14 +25,22 @@ class POSController extends Controller
             ->where('is_closed', false)
             ->first();
 
-        if (! $activeShift) {
+        if (!$activeShift) {
             return redirect()->route('shift.open.form');
         }
 
+        $data = $this->getDashboardData();
+        $data['activeShift'] = $activeShift; // just add it to the array
+
+        return view('pos.dashboard', $data);
+    }
+
+    private function getDashboardData(): array
+    {
         $yesterdaySales = Sale::whereDate('created_at', Carbon::yesterday())
             ->sum('total_amount');
 
-        $todaySales = Sale::where('created_at', today())->sum('total_amount');
+        $todaySales = Sale::whereDate('created_at', today())->sum('total_amount');
 
         $profitPercentage = 0;
         if ($yesterdaySales !== 0) {
@@ -40,18 +49,16 @@ class POSController extends Controller
 
         // getting loans:
         // today
-        $todayLoan = Loan::where('created_at', today())->sum('remaining_balance');
+        $todayLoan = Loan::whereDate('created_at', today())->sum('remaining_balance');
 
         // yesterday:
-        $yesterdayLoan = Loan::where('created_at', Carbon::yesterday())
+        $yesterdayLoan = Loan::whereDate('created_at', Carbon::yesterday())
             ->sum('remaining_balance');
-
-
 
         // profit:
         $salesToday = SaleItem::salesToday();
         $costToday = SaleItem::costOfTodaysSales();
-        
+
         $salesYesterday = SaleItem::salesYesterday();
         $costYesterday = SaleItem::costOfYesterday();
 
@@ -59,53 +66,142 @@ class POSController extends Controller
         $netProfitYesterday = $salesYesterday - $costYesterday;
 
         try {
-            $netProfitPercentage = (($netProfitToday - $netProfitYesterday)/$netProfitYesterday)*100;
-        } catch(\DivisionByZeroError $e) {
-            $netProfitPercentage = 0;
+            $netProfitPercentage = (($netProfitToday - $netProfitYesterday) / $netProfitYesterday) * 100;
+        } catch (\DivisionByZeroError $e) {
+            $netProfitPercentage = 100;
         }
 
         // customers:
-        $customersToday = Customer::where('created_at', today())->count();
-        $customersYesterday = Customer::where('created_at', Carbon::yesterday())->count();
+        $customersToday = Customer::whereDate('created_at', today())->count();
+        // dd($customersToday);
+        $customersYesterday = Customer::whereDate('created_at', Carbon::yesterday())->count();
+
 
         try {
             $loanPercentage = (($todayLoan - $yesterdayLoan) / $yesterdayLoan) * 100;
             $customersPercentage = (($customersToday - $customersYesterday) / $customersYesterday) * 100;
         } catch (\DivisionByZeroError $e) {
-            $loanPercentage = 0;
-            $customersPercentage = 0;
+            $loanPercentage = 100;
+            $customersPercentage = 100;
         }
 
         // recent transactions:
-        $customers = Customer::customers()->get();
-        return view('pos.dashboard', [
-            'activeShift' => $activeShift,
+
+        $transactions = Loan::recentTransactions()->get();
+
+        // low stock alert:
+        $lowStock = ProductVariant::lowStack()->get();
+
+        return [
             'todaySales' => $todaySales,
             'yesterdaySales' => $yesterdaySales,
             'profitPercentage' => $profitPercentage,
-            'loan' => $todayLoan,
+            'loanToday' => $todayLoan,
+            'loanYesterday' => $yesterdayLoan,
             'loanPercentage' => $loanPercentage,
             'todaysCustomers' => $customersToday,
-            'cutomersPercentage' => $customersPercentage,
+            'yesterdayCustomers' => $customersYesterday,
             'customersPercentage' => $customersPercentage,
             'netProfitToday' => $netProfitToday,
-            'netProfit' => $netProfitToday,
+            'netProfitYesterday' => $netProfitYesterday,
             'netProfitPercentage' => $netProfitPercentage,
-            'customers' => $customers
-        ]);
+            'recentTransactions' => $transactions,
+            'lowStock' => $lowStock
+        ];
     }
 
-    public function searchProduct(Request $request)   // here we have (Request $request)
+    public function searchProducts(Request $request)
     {
-        $variants = ProductVariant::with(['product', 'attr1', 'attr2'])
-            ->search($request->query)
-            ->isActive()
-            ->inStock()
-            ->limit(10)
+        $q = trim($request->input('q', ''));
+
+        if (empty($q)) {
+            return response()->json([]);
+        }
+
+        $variants = ProductVariant::query()
+            ->join('products', 'products.id', '=', 'product_variants.product_id')
+            ->where('product_variants.is_active', true)
+            ->where('products.is_active', true)
+            ->where(function ($query) use ($q) {
+                $query->where('products.name',    'like', "%{$q}%")
+                    ->orWhere('products.name_ps',  'like', "%{$q}%")
+                    ->orWhere('products.name_dr',  'like', "%{$q}%")
+                    ->orWhere('product_variants.barcode', 'like', "%{$q}%")
+                    ->orWhere('product_variants.sku',     'like', "%{$q}%");
+            })
+            ->select([
+                'product_variants.id as variant_id',
+                'products.name',
+                'product_variants.sku',
+                'product_variants.barcode',
+                'product_variants.stock_quantity',
+                DB::raw('COALESCE(product_variants.price, 0) as price'),
+            ])
+            ->orderBy('products.name')
+            ->limit(20)
             ->get();
 
         return response()->json($variants);
-        
+    }
+
+    public function trendingProducts()
+    {
+        $variants = ProductVariant::query()
+            ->join('products', 'products.id', '=', 'product_variants.product_id')
+            ->join('sale_items', 'sale_items.variant_id', '=', 'product_variants.id')
+            ->join('sales', 'sales.id', '=', 'sale_items.sale_id')
+            ->where('sales.created_at', '>=', now()->subDays(7))
+            ->where('sales.status', 'completed')
+            ->where('sale_items.is_returned', false)
+            ->where('product_variants.is_active', true)
+            ->where('products.is_active', true)
+            ->where('product_variants.stock_quantity', '>', 0)
+            ->groupBy([
+                'product_variants.id',
+                'products.name',
+                'product_variants.sku',
+                'product_variants.barcode',
+                'product_variants.stock_quantity',
+                'product_variants.price',
+            ])
+            ->orderByRaw('SUM(sale_items.quantity) DESC')
+            ->select([
+                'product_variants.id as variant_id',
+                'products.name',
+                'product_variants.sku',
+                'product_variants.barcode',
+                'product_variants.stock_quantity',
+                DB::raw('COALESCE(product_variants.price, 0) as price'),
+                DB::raw('SUM(sale_items.quantity) as total_sold'),
+            ])
+            ->limit(8)
+            ->get();
+
+        return response()->json($variants);
+    }
+
+    public function checkout(Request $request)
+    {
+        $request->validate([
+            'cart'   => 'required|string',
+        ]);
+
+        $cartItems = json_decode($request->input('cart'), true);
+
+        if (empty($cartItems)) {
+            return back()->with('error', 'Cart is empty.');
+        }
+
+        // Pass cart to your checkout view or process it
+        // Option A — show a checkout confirmation page:
+        return view('pos.checkout', [
+            'cartItems' => $cartItems,
+            'total'     => collect($cartItems)->sum(fn($i) => $i['price'] * $i['qty']),
+        ]);
+
+        // Option B — process immediately and create a Sale record:
+        // $this->processSale($cartItems, $request);
+        // return redirect()->route('pos.dashboard')->with('success', 'Sale completed!');
     }
 
     public function searchByBarcode($barcode)

@@ -22,7 +22,17 @@ Route::middleware('auth')->group(function () {
     });
 
     Route::middleware('active.shift')->prefix('pos')->name('pos.')->group(function () {
-        Route::get('/', [POSController::class, 'index'])->name('index');
+        // Route::get('/dashboard', [POSController::class, 'index'])->name('index');
+        // Route::get('/dashboard/search', [POSController::class, 'search'])->name('dashboard.search');
+        // web.php
+        // Route::get('/products/search', [POSController::class, 'searchProducts'])->name('products.search');
+        // Route::get('/products/trending', [POSController::class, 'trendingProducts'])->name('products.trending');
+        // Route::post('/checkout', [POSController::class, 'store'])->name('checkout');
+        Route::get('/dashboard',          [PosController::class, 'index'])->name('dashboard');
+        Route::get('/products/search',    [PosController::class, 'searchProducts'])->name('products.search');
+        Route::get('/products/trending',  [PosController::class, 'trendingProducts'])->name('products.trending');
+        Route::post('/checkout',          [PosController::class, 'checkout'])->name('checkout');
+
         Route::get('/customers', [POSController::class, 'showAllCustomers'])->name('allCustomers');
         Route::get('/search', [POSController::class, 'searchProduct'])->name('search');
         Route::get('/barcode/{barcode}', [POSController::class, 'searchByBarcode'])->name('barcode');

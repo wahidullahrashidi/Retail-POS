@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
+
 
 class Loan extends Model
 {
@@ -19,5 +21,42 @@ class Loan extends Model
     public function payments()
     {
         return $this->hasMany(LoanPayment::class);
+    }
+
+    public static function recentTransactions($limit = 5)
+    {
+        $loanTransactions = DB::table('loans')
+            ->join('customers', 'loans.customer_id', '=', 'customers.id')
+            ->select([
+                DB::raw("'loan' as type"),
+                'customers.name as customer_name',
+                'customers.address',
+                'loans.original_amount as amount',
+                DB::raw('NULL as receipt_number'),
+                DB::raw('NULL as received_by'),
+                'loans.created_at',
+            ]);
+
+        $paymentTransactions = DB::table('loan_payments')
+            ->join('loans', 'loan_payments.loan_id', '=', 'loans.id')
+            ->join('customers', 'loans.customer_id', '=', 'customers.id')
+            ->join('users', 'loan_payments.received_by', '=', 'users.id')
+            ->select([
+                DB::raw("'payment' as type"),
+                'customers.name as customer_name',
+                'customers.address',
+                'loan_payments.amount',
+                'loan_payments.receipt_number',
+                'users.name as received_by',
+                'loan_payments.created_at',
+            ]);
+
+        return DB::query()
+            ->fromSub(
+                $loanTransactions->unionAll($paymentTransactions),
+                'transactions'
+            )
+            ->orderByDesc('created_at')
+            ->limit($limit);
     }
 }

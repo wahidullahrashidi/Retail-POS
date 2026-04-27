@@ -20,22 +20,22 @@ class SaleItem extends Model
 
     public function scopeSalesToday($query)
     {
-        return $query->where('created_at', today())->sum('line_total');
+        return $query->whereDate('created_at', today())->sum('line_total');
     }
 
     public function scopeCostOfTodaysSales($query)
     {
-        return $query->where('created_at', today())->sum('cost_price');
+        return $query->whereDate('created_at', today())->sum('cost_price');
     }
 
     public function scopeSalesYesterday($query)
     {
-        return $query->where('created_at', Carbon::yesterday())->sum('line_total');
+        return $query->whereDate('created_at', Carbon::yesterday())->sum('line_total');
     }
 
     public function scopeCostOfYesterday($query)
     {
-        return $query->where('created_at', Carbon::yesterday())->sum('cost_price');
+        return $query->whereDate('created_at', Carbon::yesterday())->sum('cost_price');
     }
 
 }

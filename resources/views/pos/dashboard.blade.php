@@ -30,10 +30,18 @@
                     <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Today's Sales</span>
                     <span
                         class="flex items-center gap-1 text-xs font-semibold text-success bg-green-50 px-2 py-0.5 rounded-full">
-                        @if ($profitPercentage >= 0)
-                            <i class="fas fa-arrow-up text-[10px]"></i> {{ $profitPercentage }}
-                        @else
-                            <i class="fas fa-arrow-down text-[10px]"></i> {{ $profitPercentage }}%
+                        @if ($todaySales > 0)
+                            @if ($yesterdaySales > 0)
+                                <i class="fas fa-arrow-up text-[10px]"></i> {{ $profitPercentage }}%
+                            @else 
+                                <i class="fas fa-arrow-up text-[10px]"></i> 100%
+                            @endif
+                        @else 
+                            @if ($yesterdaySales > 0)
+                                <i class="fas fa-arrow-up text-[10px]"></i> -{{ $profitPercentage }}%
+                            @else 
+                                <i class="fas fa-arrow-up text-[10px]"></i> 0%
+                            @endif
                         @endif
 
                     </span>
@@ -45,25 +53,41 @@
                     <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Active Loans</span>
                     <span
                         class="flex items-center gap-1 text-xs font-semibold text-success bg-green-50 px-2 py-0.5 rounded-full">
-                        @if ($loanPercentage >= 0)
-                            <i class="fas fa-arrow-up text-[10px]"></i> {{ $loanPercentage }}%
-                        @else
-                            <i class="fas fa-arrow-down text-[10px]"></i> {{ $loanPercentage }}%
+                        @if ($loanToday > 0)
+                            @if ($loanYesterday > 0)
+                                <i class="fas fa-arrow-up text-[10px]"></i> {{ $loanPercentage }}%
+                            @else 
+                                <i class="fas fa-arrow-up text-[10px]"></i> 100%
+                            @endif
+                        @else 
+                            @if ($loanYesterday > 0)
+                                <i class="fas fa-arrow-up text-[10px]"></i> {{ $loanPercentage }}%
+                            @else 
+                                <i class="fas fa-arrow-up text-[10px]"></i> 0%
+                            @endif
                         @endif
 
                     </span>
                 </div>
-                <div class="text-2xl font-bold text-gray-900">Af {{ $loan }}</div>
+                <div class="text-2xl font-bold text-gray-900">Af {{ $loanToday }}</div>
             </div>
             <div class="stat-card bg-white rounded-xl border border-card-border p-5">
                 <div class="flex items-center justify-between mb-3">
                     <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Net Profit</span>
                     <span
                         class="flex items-center gap-1 text-xs font-semibold text-success bg-green-50 px-2 py-0.5 rounded-full">
-                        @if ($netProfitPercentage >= 0)
-                            <i class="fas fa-arrow-up text-[10px]"></i> {{ $netProfitPercentage }}%
-                        @else
-                            <i class="fas fa-arrow-down text-[10px]"></i> {{ $netProfitPercentage }}%
+                        @if ($netProfitToday > 0)
+                            @if ($netProfitYesterday > 0)
+                                <i class="fas fa-arrow-up text-[10px]"></i> {{ $netProfitPercentage }}%
+                            @else 
+                                <i class="fas fa-arrow-up text-[10px]"></i> 100%
+                            @endif
+                        @else 
+                            @if ($netProfitYesterday > 0)
+                                <i class="fas fa-arrow-up text-[10px]"></i> -{{ $netProfitPercentage }}%
+                            @else 
+                                <i class="fas fa-arrow-up text-[10px]"></i> 0%
+                            @endif
                         @endif
                     </span>
                 </div>
@@ -74,10 +98,18 @@
                     <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Customer Count</span>
                     <span
                         class="flex items-center gap-1 text-xs font-semibold text-success bg-green-50 px-2 py-0.5 rounded-full">
-                        @if ($cutomersPercentage >= 0)
-                            <i class="fas fa-arrow-up text-[10px]"></i> {{ $cutomersPercentage }}%
-                        @else
-                            <i class="fas fa-arrow-down text-[10px]"></i> {{ $cutomersPercentage }}%
+                        @if ($todaysCustomers > 0)
+                            @if ($yesterdayCustomers > 0)
+                                <i class="fas fa-arrow-up text-[10px]"></i> {{ $customersPercentage }}%
+                            @else 
+                                <i class="fas fa-arrow-up text-[10px]"></i> 100%
+                            @endif
+                        @else 
+                            @if ($yesterdayCustomers > 0)
+                                <i class="fas fa-arrow-up text-[10px]"></i> -{{ $customersPercentage }}%
+                            @else 
+                                <i class="fas fa-arrow text-[10px]"></i> 0%
+                            @endif
                         @endif
 
                     </span>
@@ -89,81 +121,237 @@
         <div class="flex gap-6">
             <!-- Left Column -->
             <div class="flex-1 space-y-6">
-                <!-- Quick Sale Entry -->
-                <div class="bg-white rounded-xl border border-card-border overflow-hidden">
+                {{-- ── QUICK SALE ENTRY ── --}}
+                <div class="bg-white rounded-xl border border-card-border overflow-hidden" x-data="cartSystem()"
+                    x-init="init()">
+
+                    {{-- Header --}}
                     <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
                         <div class="flex items-center gap-2">
                             <i class="fas fa-shopping-cart text-primary"></i>
                             <span class="font-semibold text-gray-900">Quick Sale Entry</span>
                         </div>
-                        <span class="text-xs text-gray-500 bg-gray-100 px-3 py-1 rounded-full">Scan Barcode to Begin</span>
+                        <span class="text-xs text-gray-500 bg-gray-100 px-3 py-1 rounded-full"
+                            x-text="cart.length ? cart.length + ' item(s) in cart' : 'Scan Barcode to Begin'">
+                        </span>
                     </div>
+
                     <div class="p-5">
+
+                        {{-- Search bar --}}
                         <div class="flex gap-3 mb-5">
                             <div class="flex-1 relative">
                                 <i class="fas fa-barcode absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                                <input type="text" placeholder="Focus here for Barcode (EAN-13, SKU...)"
-                                    class="search-input w-full pl-10 pr-4 py-3 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-primary transition-all">
+                                <input type="text" x-model="query" @input.debounce.400ms="search()"
+                                    @keydown.escape="clearSearch()" @keydown.enter="search()"
+                                    placeholder="Focus here for Barcode (EAN-13, SKU...)"
+                                    class="w-full pl-10 pr-4 py-3 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-primary transition-all">
                             </div>
-                            <button
+                            <button type="button" @click="search()"
                                 class="px-6 py-3 bg-primary text-white rounded-lg font-medium hover:bg-primary-dark transition-colors flex items-center gap-2">
-                                <i class="fas fa-search"></i>
-                                Search Item
+                                <i class="fas fa-search"></i> Search
+                            </button>
+                            <button type="button" x-show="query" x-cloak @click="clearSearch()"
+                                class="px-4 py-3 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors">
+                                <i class="fas fa-times"></i>
                             </button>
                         </div>
 
-                        <div class="flex items-center justify-between mb-3">
-                            <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Current Cart
-                                (Pending)</span>
-                            <span class="text-sm text-primary font-medium">3 Items added</span>
+                        {{-- Searching spinner --}}
+                        <div x-show="searching" x-cloak class="text-center py-6 text-gray-400 mb-4">
+                            <i class="fas fa-spinner fa-spin text-xl"></i>
+                            <span class="ml-2 text-sm">Searching...</span>
                         </div>
 
-                        <div class="border border-gray-200 rounded-lg overflow-hidden mb-4">
-                            <table class="w-full text-sm">
-                                <thead class="bg-gray-50">
-                                    <tr>
-                                        <th class="text-left px-4 py-3 font-medium text-gray-600">Item Name</th>
-                                        <th class="text-center px-4 py-3 font-medium text-gray-600">Qty</th>
-                                        <th class="text-right px-4 py-3 font-medium text-gray-600">Price</th>
-                                        <th class="text-right px-4 py-3 font-medium text-gray-600">Total</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="divide-y divide-gray-100">
-                                    <tr class="transaction-row">
-                                        <td class="px-4 py-3 text-gray-900">Premium Saffron (10g Pack)</td>
-                                        <td class="px-4 py-3 text-center text-gray-700">2</td>
-                                        <td class="px-4 py-3 text-right text-gray-700">Af 1,200</td>
-                                        <td class="px-4 py-3 text-right font-semibold text-gray-900">Af 2,400</td>
-                                    </tr>
-                                    <tr class="transaction-row">
-                                        <td class="px-4 py-3 text-gray-900">Basmati Rice (5kg Bag)</td>
-                                        <td class="px-4 py-3 text-center text-gray-700">1</td>
-                                        <td class="px-4 py-3 text-right text-gray-700">Af 850</td>
-                                        <td class="px-4 py-3 text-right font-semibold text-gray-900">Af 850</td>
-                                    </tr>
-                                    <tr class="transaction-row">
-                                        <td class="px-4 py-3 text-gray-900">Pure Honey (Kandahar Extra)</td>
-                                        <td class="px-4 py-3 text-center text-gray-700">1</td>
-                                        <td class="px-4 py-3 text-right text-gray-700">Af 1,500</td>
-                                        <td class="px-4 py-3 text-right font-semibold text-gray-900">Af 1,500</td>
-                                    </tr>
-                                </tbody>
-                            </table>
+                        {{-- ── SEARCH RESULTS ── --}}
+                        <div x-show="query && !searching" x-cloak>
+
+                            {{-- No results --}}
+                            <div x-show="searchResults.length === 0" class="text-center py-8 text-gray-400 mb-4">
+                                <i class="fas fa-search text-2xl mb-2 block"></i>
+                                <span x-text="'No products found for &quot;' + query + '&quot;'"></span>
+                            </div>
+
+                            {{-- Results table --}}
+                            <div x-show="searchResults.length > 0">
+                                <div class="flex items-center justify-between mb-3">
+                                    <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Search
+                                        Results</span>
+                                    <span class="text-sm text-primary font-medium"
+                                        x-text="searchResults.length + ' product(s) found'"></span>
+                                </div>
+                                <div
+                                    class="border border-gray-200 rounded-lg overflow-hidden mb-4 max-h-64 overflow-y-auto">
+                                    <table class="w-full text-sm">
+                                        <thead class="bg-gray-50 sticky top-0">
+                                            <tr>
+                                                <th class="text-left px-4 py-3 font-medium text-gray-600">Product</th>
+                                                <th class="text-left px-4 py-3 font-medium text-gray-600">SKU</th>
+                                                <th class="text-right px-4 py-3 font-medium text-gray-600">Price</th>
+                                                <th class="text-right px-4 py-3 font-medium text-gray-600">Stock</th>
+                                                <th class="text-center px-4 py-3 font-medium text-gray-600">Add</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="divide-y divide-gray-100">
+                                            <template x-for="product in searchResults" :key="product.variant_id">
+                                                <tr class="hover:bg-gray-50 transition-colors">
+                                                    <td class="px-4 py-3 text-gray-900 font-medium" x-text="product.name">
+                                                    </td>
+                                                    <td class="px-4 py-3 text-gray-400 text-xs font-mono"
+                                                        x-text="product.sku"></td>
+                                                    <td class="px-4 py-3 text-right text-gray-700">
+                                                        Af <span x-text="formatNumber(product.price)"></span>
+                                                    </td>
+                                                    <td class="px-4 py-3 text-right">
+                                                        <span
+                                                            :class="product.stock_quantity < 5 ? 'text-red-500 font-semibold' :
+                                                                'text-green-600'"
+                                                            x-text="product.stock_quantity"></span>
+                                                    </td>
+                                                    <td class="px-4 py-3 text-center">
+                                                        <button type="button" @click="addToCart(product)"
+                                                            :disabled="product.stock_quantity === 0"
+                                                            class="px-3 py-1.5 bg-primary text-white rounded-lg text-xs font-semibold hover:bg-primary-dark disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+                                                            <i class="fas fa-plus mr-1"></i> Add
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            </template>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
                         </div>
 
+                        {{-- ── TRENDING (shown when no search query) ── --}}
+                        <div x-show="!query" x-cloak>
+                            <div class="flex items-center justify-between mb-3">
+                                <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                                    <i class="fas fa-fire text-orange-400 mr-1"></i> Trending This Week
+                                </span>
+                                <span x-show="trendingLoading" class="text-xs text-gray-400">
+                                    <i class="fas fa-spinner fa-spin"></i>
+                                </span>
+                            </div>
+                            <div class="grid grid-cols-2 gap-2 mb-4">
+                                <template x-for="product in trendingProducts" :key="product.variant_id">
+                                    <button type="button" @click="addToCart(product)"
+                                        :disabled="product.stock_quantity === 0"
+                                        class="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:border-primary hover:bg-blue-50 transition-all text-left disabled:opacity-40 disabled:cursor-not-allowed group">
+                                        <div class="min-w-0 flex-1">
+                                            <div class="text-xs font-semibold text-gray-800 truncate"
+                                                x-text="product.name"></div>
+                                            <div class="text-xs text-primary font-medium mt-0.5">
+                                                Af <span x-text="formatNumber(product.price)"></span>
+                                            </div>
+                                            <div class="text-xs text-gray-400 mt-0.5"
+                                                x-text="product.total_sold + ' sold this week'"></div>
+                                        </div>
+                                        <i
+                                            class="fas fa-plus text-gray-300 group-hover:text-primary ml-2 transition-colors flex-shrink-0"></i>
+                                    </button>
+                                </template>
+                                {{-- Skeleton placeholders while loading --}}
+                                <template x-if="trendingLoading">
+                                    <template x-for="i in [1,2,3,4,5,6,7,8]" :key="i">
+                                        <div class="p-3 border border-gray-100 rounded-lg animate-pulse">
+                                            <div class="h-3 bg-gray-200 rounded w-3/4 mb-2"></div>
+                                            <div class="h-3 bg-gray-100 rounded w-1/2"></div>
+                                        </div>
+                                    </template>
+                                </template>
+                            </div>
+                        </div>
+
+                        {{-- ── CART ── --}}
+                        <div x-show="cart.length > 0" x-cloak>
+                            <div class="flex items-center justify-between mb-3">
+                                <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                                    Current Cart (Pending)
+                                </span>
+                                <div class="flex items-center gap-3">
+                                    <span class="text-sm text-primary font-medium"
+                                        x-text="cart.length + ' item(s) added'"></span>
+                                    <button type="button" @click="clearCart()"
+                                        class="text-xs text-red-400 hover:text-red-600 transition-colors">
+                                        <i class="fas fa-trash mr-1"></i> Clear
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="border border-gray-200 rounded-lg overflow-hidden mb-4">
+                                <table class="w-full text-sm">
+                                    <thead class="bg-gray-50">
+                                        <tr>
+                                            <th class="text-left px-4 py-3 font-medium text-gray-600">Item</th>
+                                            <th class="text-center px-4 py-3 font-medium text-gray-600">Qty</th>
+                                            <th class="text-right px-4 py-3 font-medium text-gray-600">Price</th>
+                                            <th class="text-right px-4 py-3 font-medium text-gray-600">Total</th>
+                                            <th class="px-4 py-3"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-gray-100">
+                                        <template x-for="(item, index) in cart" :key="item.variant_id">
+                                            <tr class="hover:bg-gray-50">
+                                                <td class="px-4 py-3 text-gray-900 font-medium" x-text="item.name"></td>
+                                                <td class="px-4 py-3">
+                                                    <div class="flex items-center justify-center gap-2">
+                                                        <button type="button" @click="decreaseQty(index)"
+                                                            class="w-6 h-6 rounded-full bg-gray-100 hover:bg-red-100 hover:text-red-600 flex items-center justify-center transition-colors">
+                                                            <i class="fas fa-minus text-xs"></i>
+                                                        </button>
+                                                        <span class="w-6 text-center font-semibold"
+                                                            x-text="item.qty"></span>
+                                                        <button type="button" @click="increaseQty(index)"
+                                                            :disabled="item.qty >= item.stock_quantity"
+                                                            class="w-6 h-6 rounded-full bg-gray-100 hover:bg-green-100 hover:text-green-600 flex items-center justify-center disabled:opacity-40 transition-colors">
+                                                            <i class="fas fa-plus text-xs"></i>
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                                <td class="px-4 py-3 text-right text-gray-600">
+                                                    Af <span x-text="formatNumber(item.price)"></span>
+                                                </td>
+                                                <td class="px-4 py-3 text-right font-bold text-gray-900">
+                                                    Af <span x-text="formatNumber(item.price * item.qty)"></span>
+                                                </td>
+                                                <td class="px-4 py-3 text-center">
+                                                    <button type="button" @click="removeFromCart(index)"
+                                                        class="text-gray-300 hover:text-red-500 transition-colors">
+                                                        <i class="fas fa-times"></i>
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        </template>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        {{-- Empty state --}}
+                        <div x-show="cart.length === 0 && !query" x-cloak
+                            class="text-center py-3 text-gray-300 text-xs mb-4">
+                            Cart is empty — tap a trending product or search to add items
+                        </div>
+
+                        {{-- ── TOTAL & CHECKOUT ── --}}
                         <div class="bg-primary rounded-xl p-5 flex items-center justify-between">
                             <div>
                                 <div class="text-xs font-medium text-primary-light uppercase tracking-wider mb-1">Total
                                     Amount Due</div>
-                                <div class="text-3xl font-bold text-white">Af 4,750</div>
+                                <div class="text-3xl font-bold text-white">
+                                    Af <span x-text="formatNumber(cartTotal)"></span>
+                                </div>
                             </div>
-                            <button
-                                class="checkout-btn px-8 py-3 bg-white text-gray-900 rounded-lg font-bold text-lg hover:bg-gray-50">
+                            <button type="button" @click="checkout()" :disabled="cart.length === 0"
+                                class="px-8 py-3 bg-white text-gray-900 rounded-lg font-bold text-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all">
                                 CHECKOUT
                             </button>
                         </div>
+
                     </div>
                 </div>
+
+
 
                 <!-- Quick Actions -->
                 <div class="grid grid-cols-4 gap-4">
@@ -204,7 +392,8 @@
                             <h3 class="font-semibold text-gray-900">Recent Transactions</h3>
                             <p class="text-xs text-gray-500 mt-0.5">Latest 5 sales in Kabul Central Branch</p>
                         </div>
-                        <a href="{{ route('pos.allCustomers') }}" class="text-sm text-primary font-medium hover:text-primary-dark">View All Logs</a>
+                        {{-- <a href="{{ route('pos.allCustomers') }}"
+                            class="text-sm text-primary font-medium hover:text-primary-dark">View All Logs</a> --}}
                     </div>
                     <div class="overflow-x-auto">
                         <table class="w-full text-sm">
@@ -219,21 +408,26 @@
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-gray-100">
-                                @foreach ($customers as $customer)
+                                @foreach ($recentTransactions as $rt)
                                     <tr class="transaction-row">
                                         <td class="px-5 py-3.5">
-                                            <span
-                                                class="text-primary font-semibold text-sm">{{ $customer->address }}</span>
+                                            <span class="text-primary font-semibold text-sm">{{ $rt->address }}</span>
                                         </td>
                                         <td class="px-5 py-3.5">
                                             @php
-                                                // Split the name into words
-                                                $parts = explode(' ', trim($customer->name));
-
-                                                // Get first letter of first and last word
-                                                $initials = strtoupper(
-                                                    substr($parts[0], 0, 1) . substr(end($parts), 0, 1),
+                                                $parts = array_values(
+                                                    array_filter(explode(' ', trim($rt->customer_name))),
                                                 );
+
+                                                if (count($parts) === 1) {
+                                                    $initials = strtoupper(substr($parts[0], 0, 2));
+                                                } else {
+                                                    $initials = strtoupper(
+                                                        collect($parts)
+                                                            ->map(fn($part) => substr($part, 0, 1))
+                                                            ->join(''),
+                                                    );
+                                                }
                                             @endphp
 
                                             <div class="flex items-center gap-2">
@@ -241,16 +435,22 @@
                                                     class="w-6 h-6 flex items-center justify-center rounded-full bg-indigo-500 text-white text-xs font-bold">
                                                     {{ $initials }}
                                                 </div>
-                                                <span class="font-medium text-gray-900">{{ $customer->name }}</span>
+                                                <span class="font-medium text-gray-900">{{ $rt->customer_name }}</span>
                                             </div>
                                         </td>
-                                        <td class="px-5 py-3.5 text-gray-700">{{ $customer->updated_at->format('H:i A') }}</td>
+                                        <td class="px-5 py-3.5 text-gray-700">
+                                            {{ \Carbon\Carbon::parse($rt->created_at)->diffForHumans() }}</td>
                                         <td class="px-5 py-3.5">
-                                            <span
-                                                class="px-2.5 py-1 bg-gray-100 text-gray-700 text-xs font-medium rounded-full">Cash</span>
+                                            @if ($rt->type === 'loan')
+                                                <span
+                                                    class="px-2.5 py-1 bg-gray-100 text-gray-700 text-xs font-medium rounded-full">Loan</span>
+                                            @else
+                                                <span
+                                                    class="px-2.5 py-1 bg-gray-100 text-gray-700 text-xs font-medium rounded-full">Cash</span>
+                                            @endif
                                         </td>
                                         <td class="px-5 py-3.5 text-right font-semibold text-gray-900">Af
-                                            {{ $customer->credit_limit }}</td>
+                                            {{ $rt->amount }}</td>
                                         <td class="px-5 py-3.5 text-center">
                                             <button class="text-gray-400 hover:text-gray-600"><i
                                                     class="fas fa-ellipsis-vertical"></i></button>
@@ -324,21 +524,19 @@
                         <h3 class="font-semibold text-gray-900">Low Stock Alerts</h3>
                     </div>
                     <div class="space-y-3">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <div class="text-sm font-medium text-gray-900">Cooking Oil (1L)</div>
-                                <div class="text-xs text-gray-500">Min: 20</div>
+                        @foreach ($lowStock as $stock)
+                            <div class="flex items-center justify-between">
+                                @if (!empty($stock))
+                                    <div>
+                                        <div class="text-sm font-medium text-gray-900">{{ $stock->sku }}</div>
+                                        <div class="text-xs text-gray-500">Min: 10</div>
+                                    </div>
+                                    <span class="text-sm font-bold text-danger">{{ $stock->stock_quantity }} left</span>
+                                @else
+                                    No Low Stock Alert
+                                @endif
                             </div>
-                            <span class="text-sm font-bold text-danger">8 left</span>
-                        </div>
-                        <div class="border-t border-gray-100"></div>
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <div class="text-sm font-medium text-gray-900">Green Tea (Special)</div>
-                                <div class="text-xs text-gray-500">Min: 10</div>
-                            </div>
-                            <span class="text-sm font-bold text-danger">3 left</span>
-                        </div>
+                        @endforeach
                     </div>
                     <button
                         class="w-full mt-4 py-2.5 bg-danger text-white rounded-lg text-sm font-medium hover:bg-red-600 transition-colors">
@@ -410,3 +608,117 @@
         </div>
     </div>
 @endsection
+
+{{-- ── Alpine.js Component ── --}}
+<script>
+    function cartSystem() {
+        return {
+            query: '',
+            searchResults: [],
+            trendingProducts: [],
+            cart: [],
+            searching: false,
+
+            get cartTotal() {
+                return this.cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+            },
+
+            // Load trending products on mount
+            async loadTrending() {
+                try {
+                    const res = await fetch('{{ route('pos.products.trending') }}');
+                    const data = await res.json();
+                    this.trendingProducts = data;
+                } catch (e) {
+                    console.error('Failed to load trending products', e);
+                }
+            },
+
+            // Search products
+            async search() {
+                if (!this.query.trim()) {
+                    this.searchResults = [];
+                    return;
+                }
+                this.searching = true;
+                try {
+                    const res = await fetch(
+                        `{{ route('pos.products.search') }}?q=${encodeURIComponent(this.query)}`);
+                    const data = await res.json();
+                    this.searchResults = data;
+                } catch (e) {
+                    console.error('Search failed', e);
+                } finally {
+                    this.searching = false;
+                }
+            },
+
+            clearSearch() {
+                this.query = '';
+                this.searchResults = [];
+            },
+
+            // Cart operations
+            addToCart(product) {
+                const existing = this.cart.find(i => i.variant_id === product.variant_id);
+                if (existing) {
+                    if (existing.qty < product.stock_quantity) existing.qty++;
+                } else {
+                    this.cart.push({
+                        ...product,
+                        qty: 1
+                    });
+                }
+                // Clear search after adding so cart is visible
+                this.clearSearch();
+            },
+
+            increaseQty(index) {
+                const item = this.cart[index];
+                if (item.qty < item.stock_quantity) item.qty++;
+            },
+
+            decreaseQty(index) {
+                if (this.cart[index].qty > 1) {
+                    this.cart[index].qty--;
+                } else {
+                    this.removeFromCart(index);
+                }
+            },
+
+            removeFromCart(index) {
+                this.cart.splice(index, 1);
+            },
+
+            clearCart() {
+                if (confirm('Clear the entire cart?')) this.cart = [];
+            },
+
+            checkout() {
+                if (!this.cart.length) return;
+                // POST cart to your checkout route
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = '{{ route('pos.checkout') }}';
+                const csrf = document.createElement('input');
+                csrf.type = 'hidden';
+                csrf.name = '_token';
+                csrf.value = '{{ csrf_token() }}';
+                form.appendChild(csrf);
+                const cartInput = document.createElement('input');
+                cartInput.type = 'hidden';
+                cartInput.name = 'cart';
+                cartInput.value = JSON.stringify(this.cart);
+                form.appendChild(cartInput);
+                document.body.appendChild(form);
+                form.submit();
+            },
+
+            formatNumber(n) {
+                return Number(n).toLocaleString('en-US', {
+                    minimumFractionDigits: 0
+                });
+            }
+        }
+    }
+</script>

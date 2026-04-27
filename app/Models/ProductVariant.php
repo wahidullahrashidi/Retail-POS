@@ -84,4 +84,10 @@ class ProductVariant extends Model
     {
         return $query->where('stock_quantity', '>', 0);
     }
+
+    public function scopeLowStack($query)
+    {
+        return $query->where('stock_quantity', '<', 5)
+        ->select('sku', 'stock_quantity');
+    }
 }
