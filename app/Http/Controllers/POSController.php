@@ -340,4 +340,46 @@ class POSController extends Controller
 
         return response()->json($customers);
     }
+
+    public function recall(Request $request)
+{
+    $code = strtoupper(trim($request->input('code', '')));
+
+    if (empty($code)) {
+        return response()->json(['success' => false, 'message' => 'No code provided.']);
+    }
+
+    $sale = Sale::with('saleItems.variant.product')
+        ->where('hold_code', $code)
+        ->where('status', 'held')
+        ->where('hold_expires_at', '>', now())
+        ->first();
+
+    if (! $sale) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Hold code not found or expired.',
+        ]);
+    }
+
+    // Rebuild cart array from saved sale items
+    $cart = $sale->saleItems->map(fn($item) => [
+        'variant_id'     => $item->variant_id,
+        'name'           => $item->variant->product->name,
+        'sku'            => $item->variant->sku,
+        'price'          => (float) $item->unit_price,
+        'qty'            => $item->quantity,
+        'stock_quantity' => $item->variant->stock_quantity + $item->quantity, // add back since not deducted
+        'lineTotal'      => (float) $item->line_total,
+        'row_discount'   => 0,
+    ]);
+
+    // Mark as cancelled so it can't be recalled twice
+    $sale->update(['status' => 'cancelled']);
+
+    return response()->json([
+        'success' => true,
+        'cart'    => $cart,
+    ]);
+}
 }

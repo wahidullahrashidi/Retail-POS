@@ -25,7 +25,7 @@ class Sale extends Model
     {
         return $this->belongsTo(Loan::class);
     }
-    public function items()
+    public function saleItems()
     {
         return $this->hasMany(SaleItem::class);
     }

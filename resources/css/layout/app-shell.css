@@ -1,0 +1,52 @@
+.sidebar-item {
+    transition: all 0.2s ease;
+}
+
+.sidebar-item:hover {
+    background-color: var(--app-surface-muted);
+}
+
+.sidebar-item.active {
+    background-color: color-mix(in srgb, var(--app-primary) 10%, white);
+    color: var(--app-primary-dark);
+    border-right: 3px solid var(--app-primary-dark);
+}
+
+.view-section {
+    animation: fade-in-up 0.3s ease;
+}
+
+.transaction-row {
+    transition: background-color 0.15s ease;
+}
+
+.transaction-row:hover {
+    background-color: var(--app-surface-muted);
+}
+
+.status-dot {
+    animation: app-pulse 2s infinite;
+}
+
+@keyframes fade-in-up {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes app-pulse {
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.5;
+    }
+}

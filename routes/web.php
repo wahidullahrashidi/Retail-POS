@@ -7,6 +7,8 @@ use App\Http\Controllers\ReportController;
 use App\Http\Controllers\ShiftController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\InvenotoryController;
+use App\Http\Controllers\CutomersController;
+
 
 Route::get('/', [AuthController::class, 'showLogin'])->name('login');
 Route::post('/login', [AuthController::class, 'login'])->name('login.post');
@@ -24,23 +26,25 @@ Route::middleware('auth')->group(function () {
     });
 
     Route::middleware('active.shift')->prefix('pos')->name('pos.')->group(function () {
+        // dashboard controller routes: 
         Route::get('/dashboard',          [DashboardController::class, 'index'])->name('dashboard');
         Route::get('/products/search',    [DashboardController::class, 'searchProducts'])->name('products.search');
         Route::get('/products/trending',  [DashboardController::class, 'trendingProducts'])->name('products.trending');
-
-        // pos controller routes:
         Route::post('/checkout',          [DashboardController::class, 'checkout'])->name('checkout');
-
-        // routes for sidebar views: just for practice.
+       
+        // poscontroller routes: 
         Route::get('/pos_checkout', [POSController::class, 'index'])->name('poscheck');
-        Route::resource('/Inventory', InvenotoryController::class);
-
-
-        // routes for testing:
-
         Route::post('/pos/checkout/store', [PosController::class, 'store'])->name('checkout.store');
         Route::post('/pos/checkout/hold',  [PosController::class, 'hold'])->name('checkout.hold');
         Route::get('/pos/customers/search', [PosController::class, 'searchCustomers'])->name('customers.search');
+        Route::get('/pos/checkout/recall', [PosController::class, 'recall'])->name('checkout.recall');
+        
+
+        // inventory controller routes: 
+        Route::resource('/Inventory', InvenotoryController::class);
+
+        // customer controller routes::
+        Route::post('/pos/customers', [CutomersController::class, 'storeCustomer'])->name('customers.store');
         
         // just for error prevention:
         Route::get('/aa', [POSController::class, 'f'])->name('search');
