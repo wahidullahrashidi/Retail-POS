@@ -1,10 +1,12 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\POSController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\ShiftController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\InvenotoryController;
 
 Route::get('/', [AuthController::class, 'showLogin'])->name('login');
 Route::post('/login', [AuthController::class, 'login'])->name('login.post');
@@ -22,19 +24,25 @@ Route::middleware('auth')->group(function () {
     });
 
     Route::middleware('active.shift')->prefix('pos')->name('pos.')->group(function () {
-        // Route::get('/dashboard', [POSController::class, 'index'])->name('index');
-        // Route::get('/dashboard/search', [POSController::class, 'search'])->name('dashboard.search');
-        // web.php
-        // Route::get('/products/search', [POSController::class, 'searchProducts'])->name('products.search');
-        // Route::get('/products/trending', [POSController::class, 'trendingProducts'])->name('products.trending');
-        // Route::post('/checkout', [POSController::class, 'store'])->name('checkout');
-        Route::get('/dashboard',          [PosController::class, 'index'])->name('dashboard');
-        Route::get('/products/search',    [PosController::class, 'searchProducts'])->name('products.search');
-        Route::get('/products/trending',  [PosController::class, 'trendingProducts'])->name('products.trending');
-        Route::post('/checkout',          [PosController::class, 'checkout'])->name('checkout');
+        Route::get('/dashboard',          [DashboardController::class, 'index'])->name('dashboard');
+        Route::get('/products/search',    [DashboardController::class, 'searchProducts'])->name('products.search');
+        Route::get('/products/trending',  [DashboardController::class, 'trendingProducts'])->name('products.trending');
 
-        Route::get('/customers', [POSController::class, 'showAllCustomers'])->name('allCustomers');
-        Route::get('/search', [POSController::class, 'searchProduct'])->name('search');
-        Route::get('/barcode/{barcode}', [POSController::class, 'searchByBarcode'])->name('barcode');
+        // pos controller routes:
+        Route::post('/checkout',          [DashboardController::class, 'checkout'])->name('checkout');
+
+        // routes for sidebar views: just for practice.
+        Route::get('/pos_checkout', [POSController::class, 'index'])->name('poscheck');
+        Route::resource('/Inventory', InvenotoryController::class);
+
+
+        // routes for testing:
+
+        Route::post('/pos/checkout/store', [PosController::class, 'store'])->name('checkout.store');
+        Route::post('/pos/checkout/hold',  [PosController::class, 'hold'])->name('checkout.hold');
+        Route::get('/pos/customers/search', [PosController::class, 'searchCustomers'])->name('customers.search');
+        
+        // just for error prevention:
+        Route::get('/aa', [POSController::class, 'f'])->name('search');
     });
 });

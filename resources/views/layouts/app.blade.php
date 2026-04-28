@@ -129,6 +129,7 @@
             display: none !important;
         }
     </style>
+    @stack('styles')
 </head>
 
 <body class="bg-gray-50 text-gray-800 h-screen overflow-hidden flex flex-col">
@@ -151,5 +152,5 @@
 
     @include('layouts.footer')
 </body>
-
+@stack('scripts')
 </html>

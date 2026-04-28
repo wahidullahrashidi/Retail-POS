@@ -677,7 +677,7 @@
 
             {{-- PASSWORD PANEL --}}
             <div id="panel-password" class="panel active">
-                <form action="{{ route('login') }}" method="POST">
+                <form action="{{ route('login.post') }}" method="POST">
                     @csrf
                     <div class="field">
                         <label>Username</label>

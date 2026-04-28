@@ -30,10 +30,10 @@ class AuthController extends Controller
             $user->update(['last_login_at' => now()]);
 
             if ($user->role->name === 'cashier') {
-                return redirect()->route('pos.index');
+                return redirect()->route('pos.dashboard');
             }
 
-            return redirect()->route('pos.index');
+            return redirect()->route('pos.dashboard');
         }
 
         return back()->with('error', 'Invalid username or password');
@@ -54,10 +54,10 @@ class AuthController extends Controller
             $user->update(['last_login_at' => now()]);
 
             if ($user->role->name === 'cashier') {
-                return redirect()->route('pos.index');
+                return redirect()->route('pos.dashboard');
             }
 
-            return redirect()->route('pos.index');
+            return redirect()->route('pos.dashboard');
         }
 
         return back()->with('error', 'Invalid PIN code');

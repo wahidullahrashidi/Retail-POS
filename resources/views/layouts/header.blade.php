@@ -44,15 +44,25 @@ $formattedDate = Carbon::now()->format('F d, Y');
             <div class="font-medium text-gray-900">{{ $hijritedDate }}</div>
             <div class="text-xs">{{ $formattedDate }}</div>
         </div>
-        <div class="relative">
+           {{-- logout button --}}
+    <form method="POST" action="{{ route('logout') }}">
+        @csrf
+        <button type="submit"
+            class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-md text-sm font-medium transition">
+            Logout
+        </button>
+    </form>
+
+        {{-- for search --}}
+        {{-- <div class="relative">
             <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
-            {{-- form for seach --}}
+            form for seach
             <form action="{{ url()->current() }}" method="get">
                 <input type="text" name="search" value="{{ request('search') }}"
                     placeholder="Search products, customers, barcodes..."
                     class="w-80 pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all">
             </form>
-        </div>
+        </div> --}}
     </div>
     <div class="flex items-center gap-4">
         <span

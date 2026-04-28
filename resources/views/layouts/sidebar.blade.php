@@ -31,14 +31,14 @@
                 </a>
             </li>
             <li>
-                <a href="{{ route('pos.search') }}"
+                <a href="{{ route('pos.poscheck') }}"
                     class="sidebar-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-700">
                     <i class="fas fa-shopping-cart w-5 text-center"></i>
                     <span class="sidebar-text">POS Checkout</span>
                 </a>
             </li>
             <li>
-                <a href="{{ route('pos.search') }}"
+                <a href="{{ route('pos.Inventory.index') }}"
                     class="sidebar-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-700">
                     <i class="fas fa-cube w-5 text-center"></i>
                     <span class="sidebar-text">Inventory</span>
@@ -84,6 +84,9 @@
         <div class="px-4 mt-6 mb-2">
             <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider">System</span>
         </div>
+        {{-- @if (auth())
+            
+        @endif --}}
         <ul class="space-y-1 px-2">
             <li>
                 <a href="{{ route('pos.search') }}"
@@ -131,32 +134,27 @@ const sideIcon = sideBtn.querySelector('i');
 const sidebarTexts = document.querySelectorAll('.sidebar-text');
 const sectionTitles = document.querySelectorAll('nav span.text-xs');
 const logoText = document.getElementById('logo-text');
+const sidebarStateKey = 'sidebar-collapsed';
+
+function setSidebarCollapsed(collapsed) {
+    sidebar.classList.toggle('w-20', collapsed);
+    sidebar.classList.toggle('w-64', !collapsed);
+
+    sidebarTexts.forEach(el => el.classList.toggle('hidden', collapsed));
+    sectionTitles.forEach(el => el.classList.toggle('hidden', collapsed));
+    logoText.classList.toggle('hidden', collapsed);
+    sideIcon.classList.toggle('rotate-180', collapsed);
+
+    localStorage.setItem(sidebarStateKey, collapsed ? '1' : '0');
+}
+
+const isSidebarCollapsed = localStorage.getItem(sidebarStateKey) === '1';
+setSidebarCollapsed(isSidebarCollapsed);
 
 sideBtn.addEventListener('click', function (e) {
     e.preventDefault();
     e.stopPropagation();
 
-    if (sidebar.classList.contains('w-64')) {
-        // Collapse
-        sidebar.classList.remove('w-64');
-        sidebar.classList.add('w-20');
-
-        sidebarTexts.forEach(el => el.classList.add('hidden'));
-        sectionTitles.forEach(el => el.classList.add('hidden'));
-        logoText.classList.add('hidden');
-
-        sideIcon.classList.add('rotate-180');
-
-    } else {
-        // Expand
-        sidebar.classList.remove('w-20');
-        sidebar.classList.add('w-64');
-
-        sidebarTexts.forEach(el => el.classList.remove('hidden'));
-        sectionTitles.forEach(el => el.classList.remove('hidden'));
-        logoText.classList.remove('hidden');
-
-        sideIcon.classList.remove('rotate-180');
-    }
+    setSidebarCollapsed(!sidebar.classList.contains('w-20'));
 });
 </script>

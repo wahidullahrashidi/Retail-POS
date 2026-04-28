@@ -1,8 +1,8 @@
-@include('layouts.app')
+@extends('layouts.app')
 
 @section('content')
     <!-- INVENTORY VIEW -->
-    <div id="view-inventory" class="view-section hidden">
+    <div id="view-inventory" class="view-section">
         <div class="flex items-center justify-between mb-6">
             <div>
                 <h1 class="text-2xl font-bold text-gray-900">Inventory</h1>

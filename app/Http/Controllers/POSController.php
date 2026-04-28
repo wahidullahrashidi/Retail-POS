@@ -2,232 +2,31 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Customer;
-use App\Models\Loan;
-use App\Models\ProductVariant;
-use App\Models\ReturnItem;
-use App\Models\ReturnModel;
+
+use App\Services\SaleService;
 use App\Models\Sale;
 use App\Models\SaleItem;
+use App\Models\Loan;
+use App\Models\Customer;
+use App\Models\ProductVariant;
 use App\Models\Shift;
-use App\Services\ReceiptService;
-use App\Services\SaleService;
-use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use App\Models\Product;
+use Illuminate\Support\Str;
+use Carbon\Carbon;
 
 class POSController extends Controller
 {
+    public function f()
+    {
+        //
+    }
+
     public function index()
     {
-        $activeShift = Shift::where('user_id', auth()->id())
-            ->where('is_closed', false)
-            ->first();
-
-        if (!$activeShift) {
-            return redirect()->route('shift.open.form');
-        }
-
-        $data = $this->getDashboardData();
-        $data['activeShift'] = $activeShift; // just add it to the array
-
-        return view('pos.dashboard', $data);
+        return view('pos.pos_checkout');
     }
 
-    private function getDashboardData(): array
-    {
-        $yesterdaySales = Sale::whereDate('created_at', Carbon::yesterday())
-            ->sum('total_amount');
-
-        $todaySales = Sale::whereDate('created_at', today())->sum('total_amount');
-
-        $profitPercentage = 0;
-        if ($yesterdaySales !== 0) {
-            $profitPercentage = (($todaySales - $yesterdaySales) / $yesterdaySales) * 100;
-        }
-
-        // getting loans:
-        // today
-        $todayLoan = Loan::whereDate('created_at', today())->sum('remaining_balance');
-
-        // yesterday:
-        $yesterdayLoan = Loan::whereDate('created_at', Carbon::yesterday())
-            ->sum('remaining_balance');
-
-        // profit:
-        $salesToday = SaleItem::salesToday();
-        $costToday = SaleItem::costOfTodaysSales();
-
-        $salesYesterday = SaleItem::salesYesterday();
-        $costYesterday = SaleItem::costOfYesterday();
-
-        $netProfitToday = $salesToday - $costToday;
-        $netProfitYesterday = $salesYesterday - $costYesterday;
-
-        try {
-            $netProfitPercentage = (($netProfitToday - $netProfitYesterday) / $netProfitYesterday) * 100;
-        } catch (\DivisionByZeroError $e) {
-            $netProfitPercentage = 100;
-        }
-
-        // customers:
-        $customersToday = Customer::whereDate('created_at', today())->count();
-        // dd($customersToday);
-        $customersYesterday = Customer::whereDate('created_at', Carbon::yesterday())->count();
-
-
-        try {
-            $loanPercentage = (($todayLoan - $yesterdayLoan) / $yesterdayLoan) * 100;
-            $customersPercentage = (($customersToday - $customersYesterday) / $customersYesterday) * 100;
-        } catch (\DivisionByZeroError $e) {
-            $loanPercentage = 100;
-            $customersPercentage = 100;
-        }
-
-        // recent transactions:
-
-        $transactions = Loan::recentTransactions()->get();
-
-        // low stock alert:
-        $lowStock = ProductVariant::lowStack()->get();
-
-        return [
-            'todaySales' => $todaySales,
-            'yesterdaySales' => $yesterdaySales,
-            'profitPercentage' => $profitPercentage,
-            'loanToday' => $todayLoan,
-            'loanYesterday' => $yesterdayLoan,
-            'loanPercentage' => $loanPercentage,
-            'todaysCustomers' => $customersToday,
-            'yesterdayCustomers' => $customersYesterday,
-            'customersPercentage' => $customersPercentage,
-            'netProfitToday' => $netProfitToday,
-            'netProfitYesterday' => $netProfitYesterday,
-            'netProfitPercentage' => $netProfitPercentage,
-            'recentTransactions' => $transactions,
-            'lowStock' => $lowStock
-        ];
-    }
-
-    public function searchProducts(Request $request)
-    {
-        $q = trim($request->input('q', ''));
-
-        if (empty($q)) {
-            return response()->json([]);
-        }
-
-        $variants = ProductVariant::query()
-            ->join('products', 'products.id', '=', 'product_variants.product_id')
-            ->where('product_variants.is_active', true)
-            ->where('products.is_active', true)
-            ->where(function ($query) use ($q) {
-                $query->where('products.name',    'like', "%{$q}%")
-                    ->orWhere('products.name_ps',  'like', "%{$q}%")
-                    ->orWhere('products.name_dr',  'like', "%{$q}%")
-                    ->orWhere('product_variants.barcode', 'like', "%{$q}%")
-                    ->orWhere('product_variants.sku',     'like', "%{$q}%");
-            })
-            ->select([
-                'product_variants.id as variant_id',
-                'products.name',
-                'product_variants.sku',
-                'product_variants.barcode',
-                'product_variants.stock_quantity',
-                DB::raw('COALESCE(product_variants.price, 0) as price'),
-            ])
-            ->orderBy('products.name')
-            ->limit(20)
-            ->get();
-
-        return response()->json($variants);
-    }
-
-    public function trendingProducts()
-    {
-        $variants = ProductVariant::query()
-            ->join('products', 'products.id', '=', 'product_variants.product_id')
-            ->join('sale_items', 'sale_items.variant_id', '=', 'product_variants.id')
-            ->join('sales', 'sales.id', '=', 'sale_items.sale_id')
-            ->where('sales.created_at', '>=', now()->subDays(7))
-            ->where('sales.status', 'completed')
-            ->where('sale_items.is_returned', false)
-            ->where('product_variants.is_active', true)
-            ->where('products.is_active', true)
-            ->where('product_variants.stock_quantity', '>', 0)
-            ->groupBy([
-                'product_variants.id',
-                'products.name',
-                'product_variants.sku',
-                'product_variants.barcode',
-                'product_variants.stock_quantity',
-                'product_variants.price',
-            ])
-            ->orderByRaw('SUM(sale_items.quantity) DESC')
-            ->select([
-                'product_variants.id as variant_id',
-                'products.name',
-                'product_variants.sku',
-                'product_variants.barcode',
-                'product_variants.stock_quantity',
-                DB::raw('COALESCE(product_variants.price, 0) as price'),
-                DB::raw('SUM(sale_items.quantity) as total_sold'),
-            ])
-            ->limit(8)
-            ->get();
-
-        return response()->json($variants);
-    }
-
-    public function checkout(Request $request)
-    {
-        $request->validate([
-            'cart'   => 'required|string',
-        ]);
-
-        $cartItems = json_decode($request->input('cart'), true);
-
-        if (empty($cartItems)) {
-            return back()->with('error', 'Cart is empty.');
-        }
-
-        // Pass cart to your checkout view or process it
-        // Option A — show a checkout confirmation page:
-        return view('pos.checkout', [
-            'cartItems' => $cartItems,
-            'total'     => collect($cartItems)->sum(fn($i) => $i['price'] * $i['qty']),
-        ]);
-
-        // Option B — process immediately and create a Sale record:
-        // $this->processSale($cartItems, $request);
-        // return redirect()->route('pos.dashboard')->with('success', 'Sale completed!');
-    }
-
-    public function searchByBarcode($barcode)
-    {
-        $variant = ProductVariant::with(['product', 'attr1', 'attr2'])
-            ->where(function ($query) use ($barcode) {
-                $query->where('barcode', $barcode)
-                    ->orWhereJsonContains('additional_barcodes', $barcode);
-            })
-            ->where('is_active', true)
-            ->where('stock_quantity', '>', 0)
-            ->first();
-
-        if (! $variant) {
-            return response()->json(['error' => 'Product not found'], 404);
-        }
-
-        return response()->json([
-            'id' => $variant->id,
-            'name' => $variant->product->name,
-            'variant_name' => $this->getVariantName($variant),
-            'price' => $variant->price ?? $variant->product->base_price,
-            'stock' => $variant->stock_quantity,
-            'barcode' => $variant->barcode,
-        ]);
-    }
 
     public function storeSale(Request $request, SaleService $saleService)
     {
@@ -266,10 +65,279 @@ class POSController extends Controller
         ]);
     }
 
-
-    public function showAllCustomers()
+    // ══════════════════════════════════════════════
+    //  STORE — Complete a sale (cash or loan)
+    // ══════════════════════════════════════════════
+    public function store(Request $request)
     {
-        $customers = Customer::allCustomers()->get();
-        return view('pos.dashboard', ['customers', $customers]);
+        $request->validate([
+            'cart'           => 'required|array|min:1',
+            'cart.*.variant_id' => 'required|integer|exists:product_variants,id',
+            'cart.*.qty'     => 'required|integer|min:1',
+            'cart.*.price'   => 'required|numeric|min:0',
+            'payment_method' => 'required|in:cash,loan',
+            'customer_id'    => 'nullable|integer|exists:customers,id',
+            'cash_received'  => 'required_if:payment_method,cash|numeric|min:0',
+            'loan_deposit'   => 'nullable|numeric|min:0',
+            'discount'       => 'nullable|numeric|min:0',
+            'discount_type'  => 'nullable|in:pct,flat',
+            'tax_rate'       => 'nullable|numeric|min:0',
+            'notes'          => 'nullable|string|max:1000',
+            'is_return'      => 'boolean',
+        ]);
+
+        // Must have an active shift
+        $shift = Shift::where('user_id', auth()->id())
+            ->where('is_closed', false)
+            ->firstOrFail();
+
+        // Loan sales require a customer
+        if ($request->payment_method === 'loan' && ! $request->customer_id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'A customer must be selected for loan sales.',
+            ], 422);
+        }
+
+        DB::beginTransaction();
+
+        try {
+            // ── 1. Calculate totals ──────────────────────
+            $subtotal = collect($request->cart)->sum(fn($i) => $i['price'] * $i['qty']);
+
+            $discountAmount = 0;
+            if ($request->filled('discount') && $request->discount > 0) {
+                $discountAmount = $request->discount_type === 'pct'
+                    ? $subtotal * ($request->discount / 100)
+                    : min($request->discount, $subtotal);
+            }
+
+            $taxRate    = $request->tax_rate ?? 0;
+            $taxAmount  = ($subtotal - $discountAmount) * $taxRate;
+            $totalAmount = max(0, $subtotal - $discountAmount + $taxAmount);
+
+            $amountPaid   = $request->payment_method === 'cash'
+                ? min($request->cash_received, $totalAmount)   // never record overpayment as paid
+                : ($request->loan_deposit ?? 0);
+
+            $changeAmount = $request->payment_method === 'cash'
+                ? max(0, $request->cash_received - $totalAmount)
+                : 0;
+
+            $saleType = $request->is_return
+                ? 'return'
+                : ($request->payment_method === 'loan' ? 'loan' : 'regular');
+
+            // ── 2. Create Sale record ────────────────────
+            $sale = Sale::create([
+                'local_id'       => 'POS-' . strtoupper(Str::random(8)),
+                'shift_id'       => $shift->id,
+                'user_id'        => auth()->id(),
+                'customer_id'    => $request->customer_id,
+                'sale_type'      => $saleType,
+                'status'         => 'completed',
+                'subtotal'       => $subtotal,
+                'discount_amount' => $discountAmount,
+                'tax_amount'     => $taxAmount,
+                'total_amount'   => $totalAmount,
+                'payment_method' => $request->payment_method,
+                'amount_paid'    => $amountPaid,
+                'change_amount'  => $changeAmount,
+                'receipt_printed' => $request->print_receipt ?? true,
+                'notes'          => $request->notes,
+                'sync_status'    => 'pending',
+            ]);
+
+            // ── 3. Create Sale Items + deduct stock ──────
+            foreach ($request->cart as $item) {
+                $variant = ProductVariant::lockForUpdate()->findOrFail($item['variant_id']);
+
+                // Stock check (skip for returns — they add stock back)
+                if (! $request->is_return && $variant->stock_quantity < $item['qty']) {
+                    throw new \Exception("Insufficient stock for: {$variant->sku}. Available: {$variant->stock_quantity}");
+                }
+
+                $lineDiscount = 0; // per-line discount can be added later
+                $lineTotal    = ($item['price'] * $item['qty']) - $lineDiscount;
+
+                SaleItem::create([
+                    'sale_id'         => $sale->id,
+                    'variant_id'      => $variant->id,
+                    'quantity'        => $item['qty'],
+                    'unit_price'      => $item['price'],
+                    'cost_price'      => $variant->cost_price,
+                    'discount_amount' => $lineDiscount,
+                    'line_total'      => $lineTotal,
+                    'is_returned'     => $request->is_return,
+                ]);
+
+                // Adjust stock
+                if ($request->is_return) {
+                    $variant->increment('stock_quantity', $item['qty']);
+                } else {
+                    $variant->decrement('stock_quantity', $item['qty']);
+                }
+            }
+
+            // ── 4. Create Loan record (if loan payment) ──
+            $loan = null;
+            if ($request->payment_method === 'loan') {
+                $deposit          = $request->loan_deposit ?? 0;
+                $remainingBalance = $totalAmount - $deposit;
+
+                $loan = Loan::create([
+                    'sale_id'          => $sale->id,
+                    'customer_id'      => $request->customer_id,
+                    'original_amount'  => $totalAmount,
+                    'amount_paid'      => $deposit,
+                    'remaining_balance' => $remainingBalance,
+                    'due_date'         => Carbon::now()->addDays(30)->toDateString(),
+                    'status'           => $remainingBalance <= 0 ? 'paid' : 'active',
+                    'payment_count'    => $deposit > 0 ? 1 : 0,
+                    'last_payment_at'  => $deposit > 0 ? now() : null,
+                ]);
+
+                // Link loan back to sale
+                $sale->update(['loan_id' => $loan->id]);
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'success'   => true,
+                'sale_id'   => $sale->local_id,
+                'cashier'   => auth()->user()->name,
+                'change'    => $changeAmount,
+                'loan_id'   => $loan?->id,
+                'message'   => 'Sale completed successfully.',
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 422);
+        }
+    }
+
+
+    // ══════════════════════════════════════════════
+    //  HOLD — Save cart as a held sale
+    // ══════════════════════════════════════════════
+    public function hold(Request $request)
+    {
+        $request->validate([
+            'cart'       => 'required|array|min:1',
+            'cart.*.variant_id' => 'required|integer|exists:product_variants,id',
+            'cart.*.qty'  => 'required|integer|min:1',
+            'cart.*.price' => 'required|numeric|min:0',
+            'notes'       => 'nullable|string|max:500',
+        ]);
+
+        $shift = Shift::where('user_id', auth()->id())
+            ->where('is_closed', false)
+            ->firstOrFail();
+
+        // Calculate subtotal for held sale
+        $subtotal = collect($request->cart)->sum(fn($i) => $i['price'] * $i['qty']);
+
+        // Unique hold code cashier can use to recall this cart
+        $holdCode = strtoupper(Str::random(6));
+
+        DB::beginTransaction();
+
+        try {
+            $sale = Sale::create([
+                'local_id'        => 'HOLD-' . $holdCode,
+                'shift_id'        => $shift->id,
+                'user_id'         => auth()->id(),
+                'customer_id'     => null,
+                'sale_type'       => 'regular',
+                'status'          => 'held',
+                'subtotal'        => $subtotal,
+                'discount_amount' => 0,
+                'tax_amount'      => 0,
+                'total_amount'    => $subtotal,
+                'payment_method'  => 'cash',   // placeholder, overwritten on completion
+                'amount_paid'     => 0,
+                'change_amount'   => 0,
+                'hold_code'       => $holdCode,
+                'hold_expires_at' => Carbon::now()->addHours(4),
+                'receipt_printed' => false,
+                'notes'           => $request->notes,
+                'sync_status'     => 'pending',
+            ]);
+
+            foreach ($request->cart as $item) {
+                SaleItem::create([
+                    'sale_id'         => $sale->id,
+                    'variant_id'      => $item['variant_id'],
+                    'quantity'        => $item['qty'],
+                    'unit_price'      => $item['price'],
+                    'cost_price'      => ProductVariant::find($item['variant_id'])?->cost_price,
+                    'discount_amount' => 0,
+                    'line_total'      => $item['price'] * $item['qty'],
+                    'is_returned'     => false,
+                ]);
+                // NOTE: stock is NOT deducted on hold — only on final completion
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'success'   => true,
+                'hold_code' => $holdCode,
+                'message'   => "Sale held. Recall code: {$holdCode}",
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 422);
+        }
+    }
+
+
+    // ══════════════════════════════════════════════
+    //  SEARCH CUSTOMERS
+    // ══════════════════════════════════════════════
+    public function searchCustomers(Request $request)
+    {
+        $q = trim($request->input('q', ''));
+
+        if (empty($q)) {
+            return response()->json([]);
+        }
+
+        $customers = Customer::query()
+            ->where('is_active', true)
+            ->where(function ($query) use ($q) {
+                $query->where('name',  'like', "%{$q}%")
+                    ->orWhere('phone', 'like', "%{$q}%")
+                    ->orWhere('phone_secondary', 'like', "%{$q}%")
+                    ->orWhere('city', 'like', "%{$q}%");
+            })
+            ->select(['id', 'name', 'phone', 'city', 'credit_limit'])
+            // Attach outstanding loan balance as a subquery
+            ->withSum(
+                ['loans' => fn($q) => $q->where('status', 'active')],
+                'remaining_balance'
+            )
+            ->orderBy('name')
+            ->limit(10)
+            ->get()
+            ->map(fn($c) => [
+                'id'           => $c->id,
+                'name'         => $c->name,
+                'phone'        => $c->phone,
+                'city'         => $c->city,
+                'credit_limit' => $c->credit_limit,
+                'loan_balance' => $c->loans_sum_remaining_balance ?? 0,
+            ]);
+
+        return response()->json($customers);
     }
 }

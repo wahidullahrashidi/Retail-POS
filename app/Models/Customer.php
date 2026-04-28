@@ -29,7 +29,7 @@ class Customer extends Model
         ];
     }
 
-    public function loans()
+    public function loans() 
     {
         return $this->hasMany(Loan::class);
     }
