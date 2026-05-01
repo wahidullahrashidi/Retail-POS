@@ -10,9 +10,7 @@
             </div>
             <span id="logo-text" class="font-bold text-lg text-gray-900">Afghan Retail</span>
             <button id="side_btn" class="ml-auto text-gray-400 hover:text-gray-600">
-                {{-- <i class="fas fa-chevron-left text-xs"></i> --}}
                 <i class="fas fa-chevron-left text-xs transition-transform duration-300"></i>
-                {{-- <i class="fas fa-chevron-left text-xs transition-transform duration-300"></i> --}}
             </button>
         </div>
     </div>
@@ -38,14 +36,14 @@
                 </a>
             </li>
             <li>
-                <a href="{{ route('pos.Inventory.index') }}"
+                <a href="{{ route('pos.inventory') }}"
                     class="sidebar-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-700">
                     <i class="fas fa-cube w-5 text-center"></i>
                     <span class="sidebar-text">Inventory</span>
                 </a>
             </li>
             <li>
-                <a href="{{ route('pos.search') }}"
+                <a href="{{ route('pos.customers.page') }}"
                     class="sidebar-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-700">
                     <i class="fas fa-users w-5 text-center"></i>
                     <span class="sidebar-text">Customers</span>
@@ -73,7 +71,7 @@
                 </a>
             </li>
             <li>
-                <a href="{{ route('pos.search') }}"
+                <a href="{{ route('pos.reports') }}"
                     class="sidebar-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-700">
                     <i class="fas fa-chart-bar w-5 text-center"></i>
                     <span class="sidebar-text">Reports</span>
@@ -84,9 +82,6 @@
         <div class="px-4 mt-6 mb-2">
             <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider">System</span>
         </div>
-        {{-- @if (auth())
-            
-        @endif --}}
         <ul class="space-y-1 px-2">
             <li>
                 <a href="{{ route('pos.search') }}"
@@ -119,11 +114,6 @@
             <i class="fas fa-lock text-xs"></i>
             <span class="sidebar-text">Lock Screen</span>
         </a>
-        {{-- <button
-            class="w-full flex items-center justify-center gap-2 px-4 py-2.5 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
-            <i class="fas fa-lock text-xs"></i>
-            Lock Screen
-        </button> --}}
     </div>
 </aside>
 <script>

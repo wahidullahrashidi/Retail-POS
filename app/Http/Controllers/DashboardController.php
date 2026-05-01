@@ -57,12 +57,6 @@ class DashboardController extends Controller
         $netProfitToday = $salesToday - $costToday;
         $netProfitYesterday = $salesYesterday - $costYesterday;
 
-        try {
-            $netProfitPercentage = (($netProfitToday - $netProfitYesterday) / $netProfitYesterday) * 100;
-        } catch (\DivisionByZeroError $e) {
-            $netProfitPercentage = 100;
-        }
-
         // customers:
         $customersToday = Customer::whereDate('created_at', today())->count();
         $customersYesterday = Customer::whereDate('created_at', Carbon::yesterday())->count();
@@ -74,13 +68,26 @@ class DashboardController extends Controller
         // low stock alert:
         $lowStock = ProductVariant::lowStack()->get();
 
+        try {
+            $netProfitPercentage = (($netProfitToday - $netProfitYesterday) / $netProfitYesterday) * 100;
+            $loanPercentage = ($todayLoan - $yesterdayLoan)/$yesterdayLoan * 100;
+            $customersPercentage = ($customersYesterday - $customersToday)/$customersYesterday*100;
+
+        } catch (\DivisionByZeroError $e) {
+            $netProfitPercentage = 100;
+            $loanPercentage = 100;
+            $customersPercentage = 100;
+        }
+
         return [
             'todaySales' => $todaySales,
             'yesterdaySales' => $yesterdaySales,
             'loanToday' => $todayLoan,
             'loanYesterday' => $yesterdayLoan,
+            'loanPercentage' => $loanPercentage,
             'todaysCustomers' => $customersToday,
             'yesterdayCustomers' => $customersYesterday,
+            'customersPercentage' => $customersPercentage,
             'netProfitToday' => $netProfitToday,
             'netProfitYesterday' => $netProfitYesterday,
             'netProfitPercentage' => $netProfitPercentage,
@@ -181,4 +188,6 @@ class DashboardController extends Controller
         // $this->processSale($cartItems, $request);
         // return redirect()->route('pos.dashboard')->with('success', 'Sale completed!');
     }
+
+    
 }

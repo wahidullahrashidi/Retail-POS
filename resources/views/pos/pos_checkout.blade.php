@@ -486,8 +486,8 @@
                     {{-- City --}}
                     <div>
                         <label
-                            style="font-size:11px;font-weight:600;color:var(--ink-2);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:5px">City</label>
-                        <input type="text" x-model="newCustomer.city"
+                            style="font-size:11px;font-weight:600;color:var(--ink-2);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:5px">Address</label>
+                        <input type="text" x-model="newCustomer.address"
                             style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-family:var(--body);font-size:13px;color:var(--ink);outline:none;background:var(--surface-2)"
                             placeholder="Kabul, Kandahar...">
                     </div>
@@ -896,7 +896,7 @@
                             this.newCustomer = {
                                 name: '',
                                 phone: '',
-                                city: '',
+                                address: '',
                                 notes: ''
                             };
                         } else {

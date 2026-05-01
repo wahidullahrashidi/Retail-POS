@@ -589,6 +589,7 @@
         {{-- /dash-body --}}
 
     </div>
+    
     {{-- /dash-root --}}
 @endsection
 
@@ -726,5 +727,8 @@
                 }
             }
         }
+
+
+        
     </script>
 @endpush
