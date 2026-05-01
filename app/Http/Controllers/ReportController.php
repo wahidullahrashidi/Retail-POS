@@ -171,7 +171,7 @@ class ReportController extends Controller
             ->select([
                 'products.name',
                 'product_variants.sku',
-                DB::raw('COALESCE(product_variants.price, products.base_price) as price'),
+                DB::raw('COALESCE(product_variants.price) as price'),
                 'product_variants.cost_price as cost',
             ])
             ->limit(20)->get()
@@ -224,7 +224,7 @@ class ReportController extends Controller
             ->value('val') ?? 0;
 
         $invValueRetail = ProductVariant::join('products', 'products.id', '=', 'product_variants.product_id')
-            ->selectRaw('SUM(product_variants.stock_quantity * COALESCE(product_variants.price, products.base_price, 0)) as val')
+            ->selectRaw('SUM(product_variants.stock_quantity * COALESCE(product_variants.price, 0)) as val')
             ->value('val') ?? 0;
 
         $criticalStock = ProductVariant::join('products', 'products.id', '=', 'product_variants.product_id')

@@ -63,7 +63,12 @@ Route::middleware('auth')->group(function () {
 
 
         // Report Controller:
-        Route::get('/report', [ReportController::class, 'page'])->name('reports');
+        // ── Reports ──────────────────────────────────────────
+        Route::get('/AZSdfghreports',   [ReportController::class, 'page'])->name('reports');
+        Route::get('/reports/data',     [ReportController::class, 'data'])->name('reports.data');
+        Route::get('/reports/zreport',  [ReportController::class, 'zreport'])->name('reports.zreport');
+        Route::get('/reports/export',   [ReportController::class, 'export'])->name('reports.export');
+        // Route::get('/report', [ReportController::class, 'page'])->name('reports');
         // just for error prevention:
         Route::get('/aa', [POSController::class, 'f'])->name('search');
     });
