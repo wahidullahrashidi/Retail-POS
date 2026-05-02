@@ -8,6 +8,10 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\SalesController;
+use App\Http\Controllers\PurchaseController;
+use App\Http\Controllers\SupplierController;
+
 
 Route::get('/', [AuthController::class, 'showLogin'])->name('login');
 Route::post('/login', [AuthController::class, 'login'])->name('login.post');
@@ -69,6 +73,29 @@ Route::middleware('auth')->group(function () {
         Route::get('/reports/zreport',  [ReportController::class, 'zreport'])->name('reports.zreport');
         Route::get('/reports/export',   [ReportController::class, 'export'])->name('reports.export');
         // Route::get('/report', [ReportController::class, 'page'])->name('reports');
+
+        // sales controller routes:
+        // ── Sales ──────────────────────────────────────────────
+
+        Route::get('/sales/page',          [SalesController::class, 'page'])->name('sales.page');
+        Route::get('/sales',               [SalesController::class, 'index'])->name('sales.index');
+        Route::get('/sales/export',        [SalesController::class, 'export'])->name('sales.export');
+        Route::post('/sales/refund',       [SalesController::class, 'refund'])->name('sales.refund');
+        Route::get('/sales/{sale}/items',  [SalesController::class, 'items'])->name('sales.items');
+
+
+        // supplier controller"
+        Route::get('/suppliers/page',                  [SupplierController::class, 'page'])->name('suppliers.page');
+        Route::get('/suppliers',                       [SupplierController::class, 'index'])->name('suppliers.index');
+        Route::post('/suppliers/store',                [SupplierController::class, 'store'])->name('suppliers.store');
+        Route::post('/suppliers/{supplier}/toggle',    [SupplierController::class, 'toggle'])->name('suppliers.toggle');
+        Route::get('/suppliers/{supplier}/purchases',  [SupplierController::class, 'supplierPurchases'])->name('suppliers.purchases');
+
+        // ── Purchases ──────────────────────────────────────────
+        Route::get('/purchases',                       [PurchaseController::class, 'index'])->name('purchases.index');
+        Route::post('/purchases/receive',              [PurchaseController::class, 'receive'])->name('purchases.receive');
+        Route::get('/purchases/{purchase}/items',      [PurchaseController::class, 'items'])->name('purchases.items');
+        Route::post('/purchases/{purchase}/cancel',    [PurchaseController::class, 'cancel'])->name('purchases.cancel');
         // just for error prevention:
         Route::get('/aa', [POSController::class, 'f'])->name('search');
     });

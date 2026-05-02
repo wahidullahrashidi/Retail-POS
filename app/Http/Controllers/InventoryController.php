@@ -42,7 +42,7 @@ class InventoryController extends Controller
         $categories      = Category::orderBy('name')->get();
         $suppliers       = Supplier::where('is_active', true)->orderBy('name')->get();
 
-        return view('pos.inventory', compact(
+        return view('inventory.inventory', compact(
             'totalProducts',
             'activeProducts',
             'lowStockCount',
@@ -107,7 +107,25 @@ class InventoryController extends Controller
                 DB::raw('product_variants.cost_price as cost_price'),
                 DB::raw('DATEDIFF(product_variants.expiry_date, CURDATE()) as days_to_expiry'),
             ])
-            ->groupBy('product_variants.id');
+            ->groupBy(
+                'product_variants.id',
+                'products.name',
+                'products.name_ps',
+                'products.name_dr',
+                'products.description',
+                'products.unit',
+                'products.category_id',
+                'products.low_stock_threshold',
+                'categories.name',
+                'product_variants.sku',
+                'product_variants.barcode',
+                'product_variants.stock_quantity',
+                'product_variants.expiry_date',
+                'product_variants.batch_number',
+                'product_variants.is_active',
+                'product_variants.price',
+                'product_variants.cost_price'
+            );
 
         // ── Search ──
         if ($q) {

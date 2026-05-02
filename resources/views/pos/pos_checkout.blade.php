@@ -530,7 +530,7 @@
         /* ── Live clock ── */
         (function tick() {
             const el = document.getElementById('coClock');
-            if (el) el.textContent = new Date().toLocaleTimeString('en-GB');
+            if (el) el.textContent = new Date().toLocaleTimeString('en-US');
             setTimeout(tick, 1000);
         })();
 

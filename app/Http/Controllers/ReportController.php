@@ -271,11 +271,13 @@ class ReportController extends Controller
             ->select([
                 'shifts.user_id as id',
                 'users.name',
+                'users.photo',
                 DB::raw('COUNT(DISTINCT shifts.id) as shift_count'),
                 DB::raw('COUNT(sales.id) as tx_count'),
                 DB::raw('SUM(CASE WHEN sales.status="completed" THEN sales.total_amount ELSE 0 END) as total_sales'),
             ])
-            ->groupBy('shifts.user_id', 'users.name')
+            ->groupBy('shifts.user_id', 'users.name', 'users.photo')  
+            // here by adding users.photo the issue of the report page resolved
             ->orderByDesc('total_sales')
             ->get();
 
@@ -283,6 +285,7 @@ class ReportController extends Controller
         $cashiers = $cashierData->map(fn($c) => [
             'id'          => $c->id,
             'name'        => $c->name,
+            'photo'       => $c->photo,
             'shift_count' => (int)$c->shift_count,
             'tx_count'    => (int)$c->tx_count,
             'total_sales' => (float)$c->total_sales,

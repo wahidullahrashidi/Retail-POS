@@ -12,16 +12,20 @@ class Purchase extends Model
     {
         return $this->belongsTo(Supplier::class);
     }
-    public function receiver()
+    
+    // Purchase.php
+    public function purchaseItems()
+    {
+        return $this->hasMany(PurchaseItem::class);
+    }
+
+    public function receivedBy()
     {
         return $this->belongsTo(User::class, 'received_by');
     }
-    public function creator()
+
+    public function createdBy()
     {
         return $this->belongsTo(User::class, 'created_by');
-    }
-    public function items()
-    {
-        return $this->hasMany(PurchaseItem::class);
     }
 }

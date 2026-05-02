@@ -34,9 +34,9 @@ class SalesController extends Controller
             $stats['today_avg'] = $stats['today_revenue'] / $stats['today_count'];
         }
 
-        $cashiers = User::whereHas('shifts')->orderBy('name')->get(['id', 'name']);
+        // $cashiers = User::whereHas('shifts')->orderBy('name')->get(['id', 'name']);
 
-        return view('pos.sales', compact('stats', 'cashiers'));
+        return view('sales.sales', compact('stats'));
     }
 
     // ══════════════════════════════════════════

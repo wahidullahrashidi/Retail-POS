@@ -50,14 +50,14 @@
                 </a>
             </li>
             <li>
-                <a href="{{ route('pos.search') }}"
+                <a href="{{ route('pos.suppliers.page') }}"
                     class="sidebar-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-700">
                     <i class="fas fa-truck w-5 text-center"></i>
                     <span class="sidebar-text">Suppliers</span>
                 </a>
             </li>
             <li>
-                <a href="{{ route('pos.search') }}"
+                <a href="{{ route('pos.sales.page') }}"
                     class="sidebar-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-700">
                     <i class="fas fa-clock-rotate-left w-5 text-center"></i>
                     <span class="sidebar-text">Sales History</span>

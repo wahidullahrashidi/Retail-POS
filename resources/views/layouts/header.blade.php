@@ -44,25 +44,14 @@ $formattedDate = Carbon::now()->format('F d, Y');
             <div class="font-medium text-gray-900">{{ $hijritedDate }}</div>
             <div class="text-xs">{{ $formattedDate }}</div>
         </div>
-           {{-- logout button --}}
-    <form method="POST" action="{{ route('logout') }}">
-        @csrf
-        <button type="submit"
-            class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-md text-sm font-medium transition">
-            Logout
-        </button>
-    </form>
-
-        {{-- for search --}}
-        {{-- <div class="relative">
-            <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
-            form for seach
-            <form action="{{ url()->current() }}" method="get">
-                <input type="text" name="search" value="{{ request('search') }}"
-                    placeholder="Search products, customers, barcodes..."
-                    class="w-80 pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all">
-            </form>
-        </div> --}}
+        {{-- logout button --}}
+        <form method="POST" action="{{ route('logout') }}">
+            @csrf
+            <button type="submit"
+                class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-md text-sm font-medium transition">
+                Logout
+            </button>
+        </form>
     </div>
     <div class="flex items-center gap-4">
         <span
@@ -76,8 +65,16 @@ $formattedDate = Carbon::now()->format('F d, Y');
             <span class="absolute top-1 right-1 w-2 h-2 bg-danger rounded-full"></span>
         </button>
         <div class="flex items-center gap-2">
-            <img src="https://ui-avatars.com/api/?name=Manager&background=6366f1&color=fff&size=32" alt="User"
-                class="w-8 h-8 rounded-full">
+            @php
+                $parts = array_values(array_filter(explode(' ', trim(Auth()->user()->name))));
+                $initials =
+                    count($parts) === 1
+                        ? strtoupper(substr($parts[0], 0, 2))
+                        : strtoupper(collect($parts)->map(fn($p) => substr($p, 0, 1))->join(''));
+            @endphp
+            <!-- Assuming you are using Laravel's Auth facade -->
+            <img src="{{ asset('storage/' . Auth::user()->photo) }}" alt="{{ $initials }}" class="w-8 h-8 rounded-full">
+
             <div class="w-2.5 h-2.5 bg-success rounded-full border-2 border-white absolute ml-6 mt-5"></div>
         </div>
     </div>

@@ -7,8 +7,8 @@
     <script src="https://cdn.jsdelivr.net/npm/apexcharts@3.46.0/dist/apexcharts.min.js"></script>
     <style>
         /* ══════════════════════════════════════
-       TOKENS
-    ══════════════════════════════════════ */
+               TOKENS
+            ══════════════════════════════════════ */
         :root {
             --bg: #f0f2f7;
             --surface: #ffffff;
@@ -46,8 +46,8 @@
         }
 
         /* ══════════════════════════════════════
-       BASE
-    ══════════════════════════════════════ */
+               BASE
+            ══════════════════════════════════════ */
         .rp* {
             box-sizing: border-box
         }
@@ -64,8 +64,8 @@
         }
 
         /* ══════════════════════════════════════
-       TOPBAR
-    ══════════════════════════════════════ */
+               TOPBAR
+            ══════════════════════════════════════ */
         .rp-top {
             background: var(--surface);
             border-bottom: 1px solid var(--border);
@@ -140,8 +140,8 @@
         }
 
         /* ══════════════════════════════════════
-       DATE RANGE TOOLBAR
-    ══════════════════════════════════════ */
+               DATE RANGE TOOLBAR
+            ══════════════════════════════════════ */
         .date-toolbar {
             display: flex;
             align-items: center;
@@ -234,8 +234,8 @@
         }
 
         /* ══════════════════════════════════════
-       TAB NAV
-    ══════════════════════════════════════ */
+               TAB NAV
+            ══════════════════════════════════════ */
         .rp-tabs {
             display: flex;
             gap: 2px;
@@ -293,8 +293,8 @@
         }
 
         /* ══════════════════════════════════════
-       TAB PANELS
-    ══════════════════════════════════════ */
+               TAB PANELS
+            ══════════════════════════════════════ */
         .rp-panel {
             display: none;
             padding: 1.25rem 1.75rem 2rem;
@@ -318,8 +318,8 @@
         }
 
         /* ══════════════════════════════════════
-       CARDS
-    ══════════════════════════════════════ */
+               CARDS
+            ══════════════════════════════════════ */
         .card {
             background: var(--surface);
             border: 1px solid var(--border);
@@ -362,8 +362,8 @@
         }
 
         /* ══════════════════════════════════════
-       KPI GRID
-    ══════════════════════════════════════ */
+               KPI GRID
+            ══════════════════════════════════════ */
         .kpi-grid {
             display: grid;
             gap: 1rem
@@ -479,8 +479,8 @@
         }
 
         /* ══════════════════════════════════════
-       CHART CONTAINERS
-    ══════════════════════════════════════ */
+               CHART CONTAINERS
+            ══════════════════════════════════════ */
         .chart-area {
             width: 100%;
             min-height: 260px
@@ -510,8 +510,8 @@
         }
 
         /* ══════════════════════════════════════
-       GRID LAYOUTS
-    ══════════════════════════════════════ */
+               GRID LAYOUTS
+            ══════════════════════════════════════ */
         .grid-2 {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -543,8 +543,8 @@
         }
 
         /* ══════════════════════════════════════
-       TABLES (mini)
-    ══════════════════════════════════════ */
+               TABLES (mini)
+            ══════════════════════════════════════ */
         .mini-table {
             width: 100%;
             border-collapse: collapse;
@@ -695,8 +695,8 @@
         }
 
         /* ══════════════════════════════════════
-       HOURLY HEATMAP
-    ══════════════════════════════════════ */
+               HOURLY HEATMAP
+            ══════════════════════════════════════ */
         .heatmap-grid {
             display: grid;
             grid-template-columns: repeat(24, 1fr);
@@ -734,8 +734,8 @@
         }
 
         /* ══════════════════════════════════════
-       Z-REPORT
-    ══════════════════════════════════════ */
+               Z-REPORT
+            ══════════════════════════════════════ */
         .zreport-card {
             background: linear-gradient(135deg, #1a2744 0%, #0f1c38 100%);
             border: 1px solid rgba(255, 255, 255, .08);
@@ -855,8 +855,8 @@
         }
 
         /* ══════════════════════════════════════
-       CASHIER CARDS
-    ══════════════════════════════════════ */
+               CASHIER CARDS
+            ══════════════════════════════════════ */
         .cashier-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
@@ -964,8 +964,8 @@
         }
 
         /* ══════════════════════════════════════
-       INVENTORY REPORT
-    ══════════════════════════════════════ */
+               INVENTORY REPORT
+            ══════════════════════════════════════ */
         .inv-alert-strip {
             display: flex;
             gap: .75rem;
@@ -1014,8 +1014,8 @@
         }
 
         /* ══════════════════════════════════════
-       LOAN AGING
-    ══════════════════════════════════════ */
+               LOAN AGING
+            ══════════════════════════════════════ */
         .aging-bar-list {
             display: flex;
             flex-direction: column;
@@ -1042,8 +1042,8 @@
         }
 
         /* ══════════════════════════════════════
-       LOADING SPINNER
-    ══════════════════════════════════════ */
+               LOADING SPINNER
+            ══════════════════════════════════════ */
         .spinner {
             display: inline-block;
             width: 18px;
@@ -1061,8 +1061,8 @@
         }
 
         /* ══════════════════════════════════════
-       EMPTY STATE
-    ══════════════════════════════════════ */
+               EMPTY STATE
+            ══════════════════════════════════════ */
         .empty-chart {
             display: flex;
             flex-direction: column;
@@ -1109,13 +1109,16 @@
                     @click="setPreset('today')">Today</button>
                 <button type="button" class="dp-btn" :class="preset === 'yesterday' ? 'active' : ''"
                     @click="setPreset('yesterday')">Yesterday</button>
-                <button type="button" class="dp-btn" :class="preset === 'week' ? 'active' : ''" @click="setPreset('week')">This
+                <button type="button" class="dp-btn" :class="preset === 'week' ? 'active' : ''"
+                    @click="setPreset('week')">This
                     Week</button>
-                <button type="button" class="dp-btn" :class="preset === 'month' ? 'active' : ''" @click="setPreset('month')">This
+                <button type="button" class="dp-btn" :class="preset === 'month' ? 'active' : ''"
+                    @click="setPreset('month')">This
                     Month</button>
                 <button type="button" class="dp-btn" :class="preset === 'quarter' ? 'active' : ''"
                     @click="setPreset('quarter')">Quarter</button>
-                <button type="button" class="dp-btn" :class="preset === 'year' ? 'active' : ''" @click="setPreset('year')">This
+                <button type="button" class="dp-btn" :class="preset === 'year' ? 'active' : ''"
+                    @click="setPreset('year')">This
                     Year</button>
             </div>
             <span class="date-sep">|</span>
@@ -1130,26 +1133,31 @@
 
         {{-- ════ TABS ════ --}}
         <div class="rp-tabs">
-            <button type="button" class="rp-tab" :class="tab === 'overview' ? 'active' : ''" @click="switchTab('overview')">
+            <button type="button" class="rp-tab" :class="tab === 'overview' ? 'active' : ''"
+                @click="switchTab('overview')">
                 <i class="fas fa-chart-pie"></i> Overview
             </button>
             <button type="button" class="rp-tab" :class="tab === 'sales' ? 'active' : ''" @click="switchTab('sales')">
                 <i class="fas fa-chart-line"></i> Sales
             </button>
-            <button type="button" class="rp-tab" :class="tab === 'products' ? 'active' : ''" @click="switchTab('products')">
+            <button type="button" class="rp-tab" :class="tab === 'products' ? 'active' : ''"
+                @click="switchTab('products')">
                 <i class="fas fa-boxes-stacked"></i> Products
             </button>
-            <button type="button" class="rp-tab" :class="tab === 'inventory' ? 'active' : ''" @click="switchTab('inventory')">
+            <button type="button" class="rp-tab" :class="tab === 'inventory' ? 'active' : ''"
+                @click="switchTab('inventory')">
                 <i class="fas fa-warehouse"></i> Inventory
             </button>
-            <button type="button" class="rp-tab" :class="tab === 'cashiers' ? 'active' : ''" @click="switchTab('cashiers')">
+            <button type="button" class="rp-tab" :class="tab === 'cashiers' ? 'active' : ''"
+                @click="switchTab('cashiers')">
                 <i class="fas fa-users"></i> Cashiers
             </button>
             <button type="button" class="rp-tab" :class="tab === 'loans' ? 'active' : ''" @click="switchTab('loans')">
                 <i class="fas fa-file-invoice-dollar"></i> Loans
                 <span class="tab-badge" x-show="data.loan_overdue > 0" x-text="data.loan_overdue"></span>
             </button>
-            <button type="button" class="rp-tab" :class="tab === 'zreport' ? 'active' : ''" @click="switchTab('zreport')">
+            <button type="button" class="rp-tab" :class="tab === 'zreport' ? 'active' : ''"
+                @click="switchTab('zreport')">
                 <i class="fas fa-file-alt"></i> Z-Report
             </button>
         </div>
@@ -1206,13 +1214,17 @@
                         <div class="card-head">
                             <div class="card-title"><i class="fas fa-chart-area"></i> Revenue & Profit Over Time</div>
                             <div style="display:flex;gap:6px">
-                                <button type="button" class="dp-btn" :class="chartGranularity === 'hourly' ? 'active' : ''"
+                                <button type="button" class="dp-btn"
+                                    :class="chartGranularity === 'hourly' ? 'active' : ''"
                                     @click="chartGranularity='hourly';renderOverviewChart()">Hourly</button>
-                                <button type="button" class="dp-btn" :class="chartGranularity === 'daily' ? 'active' : ''"
+                                <button type="button" class="dp-btn"
+                                    :class="chartGranularity === 'daily' ? 'active' : ''"
                                     @click="chartGranularity='daily';renderOverviewChart()">Daily</button>
-                                <button type="button" class="dp-btn" :class="chartGranularity === 'weekly' ? 'active' : ''"
+                                <button type="button" class="dp-btn"
+                                    :class="chartGranularity === 'weekly' ? 'active' : ''"
                                     @click="chartGranularity='weekly';renderOverviewChart()">Weekly</button>
-                                <button type="button" class="dp-btn" :class="chartGranularity === 'monthly' ? 'active' : ''"
+                                <button type="button" class="dp-btn"
+                                    :class="chartGranularity === 'monthly' ? 'active' : ''"
                                     @click="chartGranularity='monthly';renderOverviewChart()">Monthly</button>
                             </div>
                         </div>
@@ -1402,7 +1414,8 @@
                                                     x-text="i+1"></span></td>
                                             <td class="cell-mono" x-text="s.local_id"></td>
                                             <td style="font-size:12px" x-text="s.customer || 'Walk-in'"></td>
-                                            <td><span class="pill" :class="s.method === 'cash' ? 'pill-blue' : 'pill-amber'"
+                                            <td><span class="pill"
+                                                    :class="s.method === 'cash' ? 'pill-blue' : 'pill-amber'"
                                                     x-text="s.method"></span></td>
                                             <td class="cell-right cell-mono" style="color:var(--blue)"
                                                 x-text="'Af ' + fmt(s.total)"></td>
@@ -1689,9 +1702,15 @@
                     <template x-for="(c,i) in (data.cashiers||[])" :key="c.id">
                         <div class="cashier-card">
                             <div class="cc-top">
-                                <div class="cc-av"
+                                <template x-if="c.photo">
+                                    <img :src="`/storage/${c.photo}`" :alt="c.name"
+                                        class="w-10 h-10 rounded-full">
+                                </template>
+                                <template x-if="!c.photo">
+                                    <div class="cc-av"
                                     :style="`background:${['#2f6fe8','#7c3aed','#0891b2','#15803d','#d97706'][i%5]}`"
                                     x-text="initials(c.name)"></div>
+                                </template>
                                 <div>
                                     <div class="cc-name" x-text="c.name"></div>
                                     <div class="cc-role">Cashier</div>
@@ -2089,12 +2108,12 @@
                     if (!this.selectedShift) return;
                     try {
                         const r = await fetch(
-                        `${this.urls.zreport}?shift_id=${this.selectedShift}`, {
-                            headers: {
-                                'Accept': 'application/json',
-                                'X-Requested-With': 'XMLHttpRequest'
-                            }
-                        });
+                            `${this.urls.zreport}?shift_id=${this.selectedShift}`, {
+                                headers: {
+                                    'Accept': 'application/json',
+                                    'X-Requested-With': 'XMLHttpRequest'
+                                }
+                            });
                         this.zreport = await r.json();
                     } catch (e) {
                         console.error(e);

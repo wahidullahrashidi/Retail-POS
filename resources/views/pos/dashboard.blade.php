@@ -350,7 +350,7 @@
                 {{-- /quick sale --}}
 
                 {{-- QUICK ACTIONS --}}
-                <div class="action-grid">
+                {{-- <div class="action-grid">
                     <div class="action-card">
                         <div class="action-icon"><i class="fas fa-user-plus"></i></div>
                         <div class="action-title">New Customer</div>
@@ -371,7 +371,7 @@
                         <div class="action-title">Loan Payment</div>
                         <div class="action-sub">Receive Af payments</div>
                     </div>
-                </div>
+                </div> --}}
 
                 {{-- RECENT TRANSACTIONS --}}
                 <div class="card">
@@ -600,7 +600,7 @@
             const el = document.getElementById('liveClock');
             if (el) {
                 const now = new Date();
-                el.textContent = now.toLocaleTimeString('en-GB');
+                el.textContent = now.toLocaleTimeString('en-US');
             }
             setTimeout(tick, 1000);
         })();
