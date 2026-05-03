@@ -11,6 +11,8 @@ use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SalesController;
 use App\Http\Controllers\PurchaseController;
 use App\Http\Controllers\SupplierController;
+use App\Http\Controllers\BackupController;
+use App\Http\Controllers\UserController;
 
 
 Route::get('/', [AuthController::class, 'showLogin'])->name('login');
@@ -96,6 +98,29 @@ Route::middleware('auth')->group(function () {
         Route::post('/purchases/receive',              [PurchaseController::class, 'receive'])->name('purchases.receive');
         Route::get('/purchases/{purchase}/items',      [PurchaseController::class, 'items'])->name('purchases.items');
         Route::post('/purchases/{purchase}/cancel',    [PurchaseController::class, 'cancel'])->name('purchases.cancel');
+
+        // ── Backup & Sync ──────────────────────────────────────
+        Route::get('/backup',              [BackupController::class, 'page'])->name('backup');
+        Route::get('/backup/status',       [BackupController::class, 'status'])->name('backup.status');
+        Route::get('/backup/list',         [BackupController::class, 'list'])->name('backup.list');
+        Route::get('/backup/download',     [BackupController::class, 'download'])->name('backup.download');
+        Route::post('/backup/run',         [BackupController::class, 'run'])->name('backup.run');
+        Route::post('/backup/restore',     [BackupController::class, 'restore'])->name('backup.restore');
+        Route::post('/backup/delete',      [BackupController::class, 'delete'])->name('backup.delete');
+        Route::post('/backup/sync',        [BackupController::class, 'sync'])->name('backup.sync');
+        Route::post('/backup/schedule',    [BackupController::class, 'saveSchedule'])->name('backup.schedule');
+        Route::post('/backup/cloud',       [BackupController::class, 'saveCloud'])->name('backup.cloud');
+        Route::post('/backup/cloud/test',  [BackupController::class, 'testCloud'])->name('backup.cloud.test');
+
+        // ── Users ──────────────────────────────────────────────
+
+        Route::get('/users/page',              [UserController::class, 'page'])->name('users.page');
+        Route::get('/users',                   [UserController::class, 'index'])->name('users.index');
+        Route::post('/users/store',            [UserController::class, 'store'])->name('users.store');
+        Route::post('/users/password',         [UserController::class, 'resetPassword'])->name('users.password');
+        Route::get('/users/{user}/detail',     [UserController::class, 'detail'])->name('users.detail');
+        Route::post('/users/{user}/toggle',    [UserController::class, 'toggle'])->name('users.toggle');
+        
         // just for error prevention:
         Route::get('/aa', [POSController::class, 'f'])->name('search');
     });

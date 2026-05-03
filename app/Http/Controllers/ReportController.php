@@ -14,6 +14,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
+use DivisionByZeroError;
 
 class ReportController extends Controller
 {
@@ -282,6 +283,7 @@ class ReportController extends Controller
             ->get();
 
         $maxSales = $cashierData->max('total_sales') ?: 1;
+        
         $cashiers = $cashierData->map(fn($c) => [
             'id'          => $c->id,
             'name'        => $c->name,
@@ -290,7 +292,7 @@ class ReportController extends Controller
             'tx_count'    => (int)$c->tx_count,
             'total_sales' => (float)$c->total_sales,
             'avg_ticket'  => $c->tx_count > 0 ? round($c->total_sales / $c->tx_count, 0) : 0,
-            'pct'         => round(($c->total_sales / $maxSales) * 100, 1),
+            'pct'         => round(($c->total_sales / max($maxSales, 1)) * 100, 1),
         ])->values();
 
         $shifts = Shift::join('users', 'users.id', '=', 'shifts.user_id')

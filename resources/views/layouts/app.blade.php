@@ -1,74 +1,173 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{ app()->getLocale() }}" x-data="appShell()" :class="darkMode ? 'dark' : ''" x-init="init()">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>Afghan Retail POS</title>
+    <title>Afghan POS — Retail Management</title>
+
+    {{-- Tailwind --}}
     <script src="https://cdn.tailwindcss.com"></script>
+
+    {{-- Alpine --}}
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.3/dist/cdn.min.js"></script>
+
+    {{-- Icons --}}
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
-        rel="stylesheet">
+
+    {{-- Fonts --}}
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link
-        href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap"
-        rel="stylesheet">
-    <link
-        href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,600;1,400&family=Figtree:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap"
-        rel="stylesheet">
-    <link
-        href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,500;0,600;1,400&family=Nunito:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+        href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&family=Playfair+Display:ital,wght@0,700;1,400&display=swap"
         rel="stylesheet">
 
     <script>
         tailwind.config = {
+            darkMode: 'class',
             theme: {
                 extend: {
                     fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                        mono: ['DM Mono', 'monospace'],
+                        display: ['Playfair Display', 'serif']
                     },
                     colors: {
-                        primary: '#6366f1',
-                        'primary-dark': '#4f46e5',
-                        'primary-light': '#818cf8',
-                        success: '#10b981',
-                        danger: '#ef4444',
-                        warning: '#f59e0b',
-                        'sidebar-bg': '#f8fafc',
+                        primary: '#3b5bdb',
+                        'primary-dark': '#2f4ac7',
+                        'primary-light': '#748ffc',
+                        success: '#2f9e44',
+                        danger: '#e03131',
+                        warning: '#f08c00',
                         'card-border': '#e2e8f0',
                     }
                 }
             }
         }
     </script>
-    @vite(['resources/css/layout/theme.css'])
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
 
     @stack('styles')
 </head>
+
 <body>
+    <div class="shell" id="appShell" x-bind:class="{ 'collapsed': sidebarCollapsed, 'mobile-open': mobileOpen }">
 
-<body class="bg-gray-50 text-gray-800 h-screen overflow-hidden flex flex-col">
+        {{-- ════════ MOBILE OVERLAY ════════ --}}
+        <div class="sidebar-overlay" @click="mobileOpen = false"></div>
 
-    @include('layouts.header')
-
-    <div class="flex flex-1 overflow-hidden min-h-0">
+        
+        {{-- ════════ SIDEBAR ════════ --}}
         @include('layouts.sidebar')
-        <!-- Main Content -->
-        <div class="flex-1 flex flex-col min-w-0 min-h-0">
 
+        @include('layouts.header')
+        {{-- ════════ MAIN ════════ --}}
+        <main id="app-main">
+            @yield('content')
+        </main>
+        @include('layouts.footer')
 
-            <!-- Main Content Area -->
-            <main class="flex-1 overflow-y-auto p-6">
-                @yield('content')
-            </main>
+    </div>{{-- /shell --}}
 
-        </div>
-    </div>
+    {{-- Global modals --}}
+    <x-modals.register-customer />
 
-    @include('layouts.footer')
+    {{-- Global scripts --}}
+    <script>
+        /* ── Alpine global store ── */
+        document.addEventListener('alpine:init', () => {
+            Alpine.store('customerModal', {
+                show: false,
+                onSuccess: null,
+                open(cb = null) {
+                    this.onSuccess = cb;
+                    this.show = true;
+                },
+                close() {
+                    this.show = false;
+                    this.onSuccess = null;
+                },
+                registered(c) {
+                    if (typeof this.onSuccess === 'function') this.onSuccess(c);
+                    this.close();
+                }
+            });
+        });
+
+        /* ── App Shell Alpine component ── */
+        function appShell() {
+            return {
+                sidebarCollapsed: false,
+                mobileOpen: false,
+                darkMode: false,
+                lang: 'en',
+
+                init() {
+                    // Restore preferences
+                    this.sidebarCollapsed = localStorage.getItem('sb-collapsed') === '1';
+                    this.darkMode = localStorage.getItem('dark-mode') === '1';
+                    this.lang = localStorage.getItem('app-lang') || 'en';
+                    this.applyDark();
+                    this.applyLang();
+                    this.startClock();
+                },
+
+                toggleSidebar() {
+                    this.sidebarCollapsed = !this.sidebarCollapsed;
+                    localStorage.setItem('sb-collapsed', this.sidebarCollapsed ? '1' : '0');
+                },
+
+                toggleTheme() {
+                    this.darkMode = !this.darkMode;
+                    localStorage.setItem('dark-mode', this.darkMode ? '1' : '0');
+                    this.applyDark();
+                },
+
+                applyDark() {
+                    if (this.darkMode) {
+                        document.documentElement.classList.add('dark');
+                        document.body.classList.add('dark');
+                    } else {
+                        document.documentElement.classList.remove('dark');
+                        document.body.classList.remove('dark');
+                    }
+                },
+
+                setLang(l) {
+                    this.lang = l;
+                    localStorage.setItem('app-lang', l);
+                    this.applyLang();
+                },
+
+                applyLang() {
+                    const dir = (this.lang === 'ps' || this.lang === 'dr') ? 'rtl' : 'ltr';
+                    document.documentElement.setAttribute('dir', dir);
+                    document.documentElement.setAttribute('lang', this.lang);
+                },
+
+                currentLangLabel() {
+                    return {
+                        en: 'English',
+                        ps: 'پښتو',
+                        dr: 'دری'
+                    } [this.lang] || 'EN';
+                },
+
+                startClock() {
+                    const tick = () => {
+                        const t = new Date().toLocaleTimeString('en-US');
+                        const el = document.getElementById('footerClock');
+                        if (el) el.textContent = t;
+                    };
+                    tick();
+                    setInterval(tick, 1000);
+                },
+            };
+        }
+    </script>
+
+    @stack('scripts')
+
 </body>
-@stack('scripts')
 
 </html>

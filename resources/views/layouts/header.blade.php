@@ -1,81 +1,73 @@
-<?php
-use Carbon\Carbon;
-use Morilog\Jalali\Jalalian;
 
-if (!function_exists('pashtoDate')) {
-    function pashtoDate($date)
-    {
-        // Pashto month names for Solar Hijri
-        $pashtoMonths = [
-            1 => 'وری', // Wray (Sawr)
-            2 => 'غویی', // Ghway
-            3 => 'غبرګولی',
-            4 => 'چنګاښ',
-            5 => 'زمری',
-            6 => 'وږی',
-            7 => 'تله',
-            8 => 'لړم',
-            9 => 'لیندۍ',
-            10 => 'مرغومی',
-            11 => 'سلواغه',
-            12 => 'کب',
-        ];
-
-        $jalali = Jalalian::fromDateTime($date);
-        $day = $jalali->getDay();
-        $month = $pashtoMonths[$jalali->getMonth()];
-        $year = $jalali->getYear();
-
-        return "{$year} {$day} {$month}";
-    }
-}
-
-$today = now();
-$hijritedDate = pashtoDate($today);
-
-// Get current date and format it
-$formattedDate = Carbon::now()->format('F d, Y');
-?>
-
-<!-- Header -->
-<header class="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between">
-    <div class="flex items-center gap-4">
-        <div class="text-sm text-gray-500">
-            <div class="font-medium text-gray-900">{{ $hijritedDate }}</div>
-            <div class="text-xs">{{ $formattedDate }}</div>
-        </div>
-        {{-- logout button --}}
-        <form method="POST" action="{{ route('logout') }}">
-            @csrf
-            <button type="submit"
-                class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-md text-sm font-medium transition">
-                Logout
+{{-- ════════ HEADER ════════ --}}
+    <header id="app-header">
+        <div class="header-left">
+            {{-- Hamburger (mobile) --}}
+            <button class="hdr-hamburger" @click="mobileOpen = !mobileOpen">
+                <i class="fas fa-bars"></i>
             </button>
-        </form>
-    </div>
-    <div class="flex items-center gap-4">
-        <span
-            class="px-3 py-1 bg-indigo-50 text-primary text-xs font-semibold rounded-full border border-indigo-100">{{ Auth()->user()->name }}</span>
-        <button class="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-700">
-            <i class="fas fa-globe"></i>
-        </button>
-        <span class="text-sm font-medium text-gray-700">EN</span>
-        <button class="relative w-8 h-8 flex items-center justify-center text-gray-500 hover:text-gray-700">
-            <i class="fas fa-bell"></i>
-            <span class="absolute top-1 right-1 w-2 h-2 bg-danger rounded-full"></span>
-        </button>
-        <div class="flex items-center gap-2">
-            @php
-                $parts = array_values(array_filter(explode(' ', trim(Auth()->user()->name))));
-                $initials =
-                    count($parts) === 1
-                        ? strtoupper(substr($parts[0], 0, 2))
-                        : strtoupper(collect($parts)->map(fn($p) => substr($p, 0, 1))->join(''));
-            @endphp
-            <!-- Assuming you are using Laravel's Auth facade -->
-            <img src="{{ asset('storage/' . Auth::user()->photo) }}" alt="{{ $initials }}" class="w-8 h-8 rounded-full">
 
-            <div class="w-2.5 h-2.5 bg-success rounded-full border-2 border-white absolute ml-6 mt-5"></div>
+            {{-- Date --}}
+            <div class="text-sm text-gray-500">
+            <div class="font-medium text-gray-900">{{ $jalaliDate }}</div>
+            <div class="text-xs">{{ $gregorianDate }}</div>
         </div>
-    </div>
-</header>
+        </div>
+
+        <div class="header-right">
+
+            {{-- Theme toggle --}}
+            <button class="theme-toggle" @click="toggleTheme()" :title="darkMode ? 'Light mode' : 'Dark mode'">
+                <i :class="darkMode ? 'fas fa-sun' : 'fas fa-moon'"></i>
+            </button>
+
+            <div class="hdr-divider"></div>
+
+            {{-- Language selector --}}
+            <div class="lang-dropdown" x-data="{ open: false }" @click.outside="open=false">
+                <button class="lang-btn" @click="open = !open">
+                    <span x-text="currentLangLabel()"></span>
+                    <i class="fas fa-chevron-down" style="font-size:9px;opacity:.6"></i>
+                </button>
+                <div class="lang-menu" x-show="open" x-cloak>
+                    <button class="lang-option" :class="lang==='en'?'active':''" @click="setLang('en'); open=false">
+                        English
+                    </button>
+                    <button class="lang-option" :class="lang==='ps'?'active':''" @click="setLang('ps'); open=false" style="font-family:serif">
+                        پښتو
+                    </button>
+                    <button class="lang-option" :class="lang==='dr'?'active':''" @click="setLang('dr'); open=false" style="font-family:serif">
+                        دری
+                    </button>
+                </div>
+            </div>
+
+            <div class="hdr-divider"></div>
+
+            {{-- Notifications --}}
+            {{-- <button class="hdr-btn">
+                <i class="fas fa-bell"></i>
+                <span class="badge"></span>
+            </button> --}}
+
+            {{-- User chip --}}
+            @php
+                $user  = Auth::user();
+                $parts = array_values(array_filter(explode(' ', trim($user->name ?? ''))));
+                $initials = count($parts) === 1
+                    ? strtoupper(substr($parts[0], 0, 2))
+                    : strtoupper(collect($parts)->map(fn($p) => substr($p, 0, 1))->join(''));
+            @endphp
+            <div class="user-chip">
+                @if($user->photo)
+                    <img src="{{ asset('storage/' . Auth::user()->photo) }}" class="w-8 h-8 rounded-full">
+                @else
+                    <div class="user-av" style="background:#3b5bdb;font-size:11px;font-weight:700;color:#fff;display:flex;align-items:center;justify-content:center;font-family:'Plus Jakarta Sans',sans-serif">
+                        {{ $initials }}
+                    </div>
+                @endif
+                <span class="user-chip-name">{{ $user->name }}</span>
+            </div>
+
+        </div>
+    </header>

@@ -1,7 +1,7 @@
 ﻿@extends('layouts.app')
 
 @push('styles')
-    @vite(['resources/css/pages/dashboard.css'])
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
 @endpush
 
 @section('content')
@@ -16,7 +16,7 @@
                 <p>Welcome back — here's what's happening right now.</p>
             </div>
             <div class="topbar-right">
-                <div class="live-clock" id="liveClock">--:--:--</div>
+                {{-- <div class="live-clock" id="liveClock">--:--:--</div> --}}
                 <div class="shift-badge">Shift Active</div>
                 <a href="{{ route('pos.poscheck') }}" class="btn-new-sale">
                     <i class="fas fa-bolt"></i> New Sale

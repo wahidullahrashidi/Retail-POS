@@ -1,150 +1,116 @@
-<!-- Sidebar -->
-<aside id="sidebar"
-    class="w-64 transition-all duration-300 bg-white border-r border-gray-200 flex flex-col flex-shrink-0">
+<aside id="sidebar">
 
-    <!-- Logo -->
-    <div class="p-5 border-b border-gray-100">
-        <div class="flex items-center gap-3">
-            <div id="logo-icon" class="w-9 h-9 bg-primary rounded-lg flex items-center justify-center text-white">
-                <i class="fas fa-heartbeat text-sm"></i>
-            </div>
-            <span id="logo-text" class="font-bold text-lg text-gray-900">Afghan Retail</span>
-            <button id="side_btn" class="ml-auto text-gray-400 hover:text-gray-600">
-                <i class="fas fa-chevron-left text-xs transition-transform duration-300"></i>
+    {{-- Logo --}}
+    <div class="sb-logo">
+        <div class="logo-mark">
+            <svg viewBox="0 0 34 34" fill="none" xmlns="http://www.w3.org/2000/svg">
+                {{-- Afghan-inspired geometric: 8-pointed star inside octagon --}}
+                <polygon
+                    points="17,2 20.5,6.5 26,5 24.5,10.5 30,13 27,18 30,23 24.5,25.5 26,31 20.5,29.5 17,34 13.5,29.5 8,31 9.5,25.5 4,23 7,18 4,13 9.5,10.5 8,5 13.5,6.5"
+                    fill="#3b5bdb" opacity=".15" />
+                <polygon
+                    points="17,4 20,8 25,6.5 23.5,11.5 28.5,14 26,18 28.5,22 23.5,24.5 25,29.5 20,28 17,32 14,28 9,29.5 10.5,24.5 5.5,22 8,18 5.5,14 10.5,11.5 9,6.5 14,8"
+                    fill="none" stroke="#3b5bdb" stroke-width="1.2" />
+                {{-- Inner 4-pointed star --}}
+                <path d="M17 9 L18.8 15.2 L25 17 L18.8 18.8 L17 25 L15.2 18.8 L9 17 L15.2 15.2 Z" fill="#3b5bdb" />
+                {{-- Center dot --}}
+                <circle cx="17" cy="17" r="2" fill="#fff" />
+            </svg>
+        </div>
+        <span class="logo-text">Afghan POS</span>
+
+    </div>
+
+
+    {{-- Navigation --}}
+    <nav class="sb-nav">
+        {{-- Store section --}}
+        <div class="sb-section-label flex items-center">
+            <span class="sb-label-text">Store</span>
+            <button class="sb-toggle" @click="toggleSidebar()" title="Toggle sidebar">
+                <i class="fas fa-chevron-left"></i>
             </button>
         </div>
-    </div>
+        <a href="{{ route('pos.dashboard') }}" class="sb-item {{ request()->routeIs('pos.dashboard') ? 'active' : '' }}"
+            data-tip="Dashboard">
+            <i class="fas fa-gauge-high"></i>
+            <span class="sb-item-text">Dashboard</span>
+        </a>
+        <a href="{{ route('pos.poscheck') }}" class="sb-item {{ request()->routeIs('pos.poscheck') ? 'active' : '' }}"
+            data-tip="POS Checkout">
+            <i class="fas fa-cash-register"></i>
+            <span class="sb-item-text">POS Checkout</span>
+        </a>
+        <a href="{{ route('pos.inventory') }}" class="sb-item {{ request()->routeIs('pos.inventory') ? 'active' : '' }}"
+            data-tip="Inventory">
+            <i class="fas fa-boxes-stacked"></i>
+            <span class="sb-item-text">Inventory</span>
+        </a>
+        <a href="{{ route('pos.customers.page') }}"
+            class="sb-item {{ request()->routeIs('pos.customers.page') ? 'active' : '' }}" data-tip="Customers">
+            <i class="fas fa-users"></i>
+            <span class="sb-item-text">Customers</span>
+        </a>
+        <a href="{{ route('pos.suppliers.page') }}"
+            class="sb-item {{ request()->routeIs('pos.suppliers.page') ? 'active' : '' }}" data-tip="Suppliers">
+            <i class="fas fa-truck"></i>
+            <span class="sb-item-text">Suppliers</span>
+        </a>
+        <a href="{{ route('pos.sales.page') }}"
+            class="sb-item {{ request()->routeIs('pos.sales.page') ? 'active' : '' }}" data-tip="Sales History">
+            <i class="fas fa-receipt"></i>
+            <span class="sb-item-text">Sales History</span>
+        </a>
+        <a href="{{ route('pos.reports') }}" class="sb-item {{ request()->routeIs('pos.reports') ? 'active' : '' }}"
+            data-tip="Reports">
+            <i class="fas fa-chart-bar"></i>
+            <span class="sb-item-text">Reports</span>
+        </a>
 
-    <!-- Navigation -->
-    <nav class="flex-1 overflow-y-auto py-4">
-        <div class="px-4 mb-2">
-            <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Store</span>
-        </div>
-        <ul class="space-y-1 px-2">
-            <li>
-                <a href="{{ route('pos.dashboard') }}"
-                    class="sidebar-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-700">
-                    <i class="fas fa-th-large w-5 text-center"></i>
-                    <span class="sidebar-text">Dashboard</span>
-                </a>
-            </li>
-            <li>
-                <a href="{{ route('pos.poscheck') }}"
-                    class="sidebar-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-700">
-                    <i class="fas fa-shopping-cart w-5 text-center"></i>
-                    <span class="sidebar-text">POS Checkout</span>
-                </a>
-            </li>
-            <li>
-                <a href="{{ route('pos.inventory') }}"
-                    class="sidebar-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-700">
-                    <i class="fas fa-cube w-5 text-center"></i>
-                    <span class="sidebar-text">Inventory</span>
-                </a>
-            </li>
-            <li>
-                <a href="{{ route('pos.customers.page') }}"
-                    class="sidebar-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-700">
-                    <i class="fas fa-users w-5 text-center"></i>
-                    <span class="sidebar-text">Customers</span>
-                </a>
-            </li>
-            <li>
-                <a href="{{ route('pos.suppliers.page') }}"
-                    class="sidebar-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-700">
-                    <i class="fas fa-truck w-5 text-center"></i>
-                    <span class="sidebar-text">Suppliers</span>
-                </a>
-            </li>
-            <li>
-                <a href="{{ route('pos.sales.page') }}"
-                    class="sidebar-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-700">
-                    <i class="fas fa-clock-rotate-left w-5 text-center"></i>
-                    <span class="sidebar-text">Sales History</span>
-                </a>
-            </li>
-            <li>
-                <a href="{{ route('pos.search') }}"
-                    class="sidebar-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-700">
-                    <i class="fas fa-clock w-5 text-center"></i>
-                    <span class="sidebar-text">Shifts</span>
-                </a>
-            </li>
-            <li>
-                <a href="{{ route('pos.reports') }}"
-                    class="sidebar-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-700">
-                    <i class="fas fa-chart-bar w-5 text-center"></i>
-                    <span class="sidebar-text">Reports</span>
-                </a>
-            </li>
-        </ul>
+        {{-- Operations section --}}
+        <div class="sb-section-label" style="margin-top:.5rem">
+            <span class="sb-label-text">Operations</span>
+            </div>
+        <a href="{{ route('shift.open.form') }}" class="sb-item {{ request()->routeIs('shift.*') ? 'active' : '' }}"
+            data-tip="Shifts">
+            <i class="fas fa-clock"></i>
+            <span class="sb-item-text">Shifts</span>
+        </a>
 
-        <div class="px-4 mt-6 mb-2">
-            <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider">System</span>
-        </div>
-        <ul class="space-y-1 px-2">
-            <li>
-                <a href="{{ route('pos.search') }}"
-                    class="sidebar-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-700">
-                    <i class="fas fa-microchip w-5 text-center"></i>
-                    <span class="sidebar-text">Hardware</span>
-                </a>
-            </li>
-            <li>
-                <a href="{{ route('pos.search') }}"
-                    class="sidebar-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-700">
-                    <i class="fas fa-cloud-arrow-up w-5 text-center"></i>
-                    <span class="sidebar-text">Sync & Backup</span>
-                </a>
-            </li>
-            <li>
-                <a href="{{ route('pos.search') }}"
-                    class="sidebar-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-700">
-                    <i class="fas fa-gear w-5 text-center"></i>
-                    <span class="sidebar-text">Settings</span>
-                </a>
-            </li>
-        </ul>
+        {{-- System section --}}
+        <div class="sb-section-label" style="margin-top:.5rem">
+            <span class="sb-label-text">Operations</span>
+            </div>
+        <a href="{{ route('pos.users.page') }}"
+            class="sb-item {{ request()->routeIs('pos.users.*') ? 'active' : '' }}" data-tip="Users">
+            <i class="fas fa-users-gear"></i>
+            <span class="sb-item-text">User Management</span>
+        </a>
+        <a href="{{ route('pos.backup') }}" class="sb-item {{ request()->routeIs('pos.backup*') ? 'active' : '' }}"
+            data-tip="Backup & Sync">
+            <i class="fas fa-cloud-arrow-up"></i>
+            <span class="sb-item-text">Backup & Sync</span>
+        </a>
+        <a href="#" class="sb-item" data-tip="Settings">
+            <i class="fas fa-gear"></i>
+            <span class="sb-item-text">Settings</span>
+        </a>
+
     </nav>
 
-    <!-- Lock Screen -->
-    <div class="p-4 border-t border-gray-200">
-        <a href="{{ route('pos.search') }}"
-            class="w-full flex items-center justify-center gap-2 px-4 py-2.5 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
-            <i class="fas fa-lock text-xs"></i>
-            <span class="sidebar-text">Lock Screen</span>
-        </a>
+    {{-- Lock / logout --}}
+    <div class="sb-foot">
+        <form method="POST" action="{{ route('logout') }}">
+            @csrf
+            <button type="submit" class="w-full" style="padding:0;border:none;background:none;cursor:pointer">
+                <a href="#" onclick="this.closest('form').submit(); return false;"
+                    class="flex items-center justify-center gap-2 p-2 rounded-lg border border-gray-200 text-sm font-medium text-gray-600 hover:bg-red-50 hover:border-red-200 hover:text-red-600 transition-all"
+                    style="text-decoration:none">
+                    <i class="fas fa-right-from-bracket text-xs"></i>
+                    <span class="sb-foot-text">Logout</span>
+                </a>
+            </button>
+        </form>
     </div>
+
 </aside>
-<script>
-const sidebar = document.getElementById('sidebar');
-const sideBtn = document.getElementById('side_btn');
-const sideIcon = sideBtn.querySelector('i');
-
-const sidebarTexts = document.querySelectorAll('.sidebar-text');
-const sectionTitles = document.querySelectorAll('nav span.text-xs');
-const logoText = document.getElementById('logo-text');
-const sidebarStateKey = 'sidebar-collapsed';
-
-function setSidebarCollapsed(collapsed) {
-    sidebar.classList.toggle('w-20', collapsed);
-    sidebar.classList.toggle('w-64', !collapsed);
-
-    sidebarTexts.forEach(el => el.classList.toggle('hidden', collapsed));
-    sectionTitles.forEach(el => el.classList.toggle('hidden', collapsed));
-    logoText.classList.toggle('hidden', collapsed);
-    sideIcon.classList.toggle('rotate-180', collapsed);
-
-    localStorage.setItem(sidebarStateKey, collapsed ? '1' : '0');
-}
-
-const isSidebarCollapsed = localStorage.getItem(sidebarStateKey) === '1';
-setSidebarCollapsed(isSidebarCollapsed);
-
-sideBtn.addEventListener('click', function (e) {
-    e.preventDefault();
-    e.stopPropagation();
-
-    setSidebarCollapsed(!sidebar.classList.contains('w-20'));
-});
-</script>

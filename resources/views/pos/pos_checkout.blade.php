@@ -1,7 +1,7 @@
 ﻿@extends('layouts.app')
 
 @push('styles')
-    @vite(['resources/css/pages/pos-checkout.css'])
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
 @endpush
 
 @section('content')
@@ -17,7 +17,7 @@
                 <div class="co-title">Afghan <span>POS</span> — Checkout</div>
             </div>
             <div class="co-topbar-right">
-                <div class="co-clock" id="coClock">--:--:--</div>
+                {{-- <div class="co-clock" id="coClock">--:--:--</div> --}}
                 <div class="co-shift-pill">Shift Active</div>
             </div>
         </div>
