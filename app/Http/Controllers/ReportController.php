@@ -14,7 +14,6 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
-use DivisionByZeroError;
 
 class ReportController extends Controller
 {
@@ -42,15 +41,15 @@ class ReportController extends Controller
         $prevTo   = $from->copy()->subSecond();
 
         $completedSales = fn($q) => $q->whereBetween('created_at', [$from, $to])
-            ->where('status', 'completed');
+                                      ->where('status', 'completed');
         $prevSales = fn($q)      => $q->whereBetween('created_at', [$prevFrom, $prevTo])
-            ->where('status', 'completed');
+                                      ->where('status', 'completed');
 
         // ── Core KPIs ──────────────────────────
         $totalRevenue = Sale::where($completedSales)->sum('total_amount');
         $prevRevenue  = Sale::where($prevSales)->sum('total_amount');
 
-        $totalCost    = SaleItem::join('sales', 'sales.id', '=', 'sale_items.sale_id')
+        $totalCost    = SaleItem::join('sales','sales.id','=','sale_items.sale_id')
             ->whereBetween('sales.created_at', [$from, $to])
             ->where('sales.status', 'completed')
             ->where('sale_items.is_returned', false)
@@ -61,21 +60,21 @@ class ReportController extends Controller
         $revenueTrend   = $prevRevenue  > 0 ? (($totalRevenue - $prevRevenue) / $prevRevenue) * 100 : 0;
 
         $totalTx        = Sale::where($completedSales)->count();
-        $itemsSold      = SaleItem::join('sales', 'sales.id', '=', 'sale_items.sale_id')
-            ->whereBetween('sales.created_at', [$from, $to])
-            ->where('sales.status', 'completed')
-            ->where('sale_items.is_returned', false)
+        $itemsSold      = SaleItem::join('sales','sales.id','=','sale_items.sale_id')
+            ->whereBetween('sales.created_at',[$from,$to])
+            ->where('sales.status','completed')
+            ->where('sale_items.is_returned',false)
             ->sum('sale_items.quantity');
 
         $avgTransaction = $totalTx > 0 ? $totalRevenue / $totalTx : 0;
 
-        $cashSales      = Sale::where($completedSales)->where('payment_method', 'cash')->sum('total_amount');
-        $loanSales      = Sale::where($completedSales)->where('payment_method', 'loan')->sum('total_amount');
+        $cashSales      = Sale::where($completedSales)->where('payment_method','cash')->sum('total_amount');
+        $loanSales      = Sale::where($completedSales)->where('payment_method','loan')->sum('total_amount');
         $totalDiscounts = Sale::where($completedSales)->sum('discount_amount');
         $discountRate   = $totalRevenue > 0 ? ($totalDiscounts / ($totalRevenue + $totalDiscounts)) * 100 : 0;
 
-        $returnCount    = Sale::whereBetween('created_at', [$from, $to])->where('sale_type', 'return')->count();
-        $returnAmount   = Sale::whereBetween('created_at', [$from, $to])->where('sale_type', 'return')->sum('total_amount');
+        $returnCount    = Sale::whereBetween('created_at',[$from,$to])->where('sale_type','return')->count();
+        $returnAmount   = Sale::whereBetween('created_at',[$from,$to])->where('sale_type','return')->sum('total_amount');
 
         // ── Trend labels & series ──────────────
         [$trendLabels, $trendRevenue, $trendProfit, $dailyCash, $dailyLoan, $dailyLabels] =
@@ -85,25 +84,25 @@ class ReportController extends Controller
         $hourlyRaw = Sale::where($completedSales)
             ->select(DB::raw('HOUR(created_at) as hr'), DB::raw('SUM(total_amount) as total'))
             ->groupBy('hr')->get()->keyBy('hr');
-        $hourlyHeatmap = collect(range(0, 23))->map(fn($h) => (float)($hourlyRaw[$h]->total ?? 0))->values()->toArray();
+        $hourlyHeatmap = collect(range(0,23))->map(fn($h) => (float)($hourlyRaw[$h]->total ?? 0))->values()->toArray();
         $hourlyMax     = max($hourlyHeatmap) ?: 1;
 
         // ── Avg by day of week ─────────────────
         $weekdayRaw = Sale::where($completedSales)
             ->select(DB::raw('DAYOFWEEK(created_at) as dow'), DB::raw('AVG(total_amount) as avg_sale'))
             ->groupBy('dow')->get()->keyBy('dow');
-        $weekdayAvg = collect(range(1, 7))->map(fn($d) => round($weekdayRaw[$d]->avg_sale ?? 0, 2))->values()->toArray();
+        $weekdayAvg = collect(range(1,7))->map(fn($d) => round($weekdayRaw[$d]->avg_sale ?? 0, 2))->values()->toArray();
 
         // ── Top categories ─────────────────────
-        $catRevenue = SaleItem::join('sales', 'sales.id', '=', 'sale_items.sale_id')
-            ->join('product_variants', 'product_variants.id', '=', 'sale_items.variant_id')
-            ->join('products', 'products.id', '=', 'product_variants.product_id')
-            ->join('categories', 'categories.id', '=', 'products.category_id')
-            ->whereBetween('sales.created_at', [$from, $to])
-            ->where('sales.status', 'completed')
-            ->where('sale_items.is_returned', false)
+        $catRevenue = SaleItem::join('sales','sales.id','=','sale_items.sale_id')
+            ->join('product_variants','product_variants.id','=','sale_items.variant_id')
+            ->join('products','products.id','=','product_variants.product_id')
+            ->join('categories','categories.id','=','products.category_id')
+            ->whereBetween('sales.created_at',[$from,$to])
+            ->where('sales.status','completed')
+            ->where('sale_items.is_returned',false)
             ->select('categories.name', DB::raw('SUM(sale_items.line_total) as revenue'))
-            ->groupBy('categories.id', 'categories.name')
+            ->groupBy('categories.id','categories.name')
             ->orderByDesc('revenue')
             ->limit(6)->get();
 
@@ -115,12 +114,12 @@ class ReportController extends Controller
         ])->values();
 
         // ── Top products ───────────────────────
-        $topProducts = SaleItem::join('sales', 'sales.id', '=', 'sale_items.sale_id')
-            ->join('product_variants', 'product_variants.id', '=', 'sale_items.variant_id')
-            ->join('products', 'products.id', '=', 'product_variants.product_id')
-            ->whereBetween('sales.created_at', [$from, $to])
-            ->where('sales.status', 'completed')
-            ->where('sale_items.is_returned', false)
+        $topProducts = SaleItem::join('sales','sales.id','=','sale_items.sale_id')
+            ->join('product_variants','product_variants.id','=','sale_items.variant_id')
+            ->join('products','products.id','=','product_variants.product_id')
+            ->whereBetween('sales.created_at',[$from,$to])
+            ->where('sales.status','completed')
+            ->where('sale_items.is_returned',false)
             ->select([
                 'products.name',
                 'product_variants.sku',
@@ -128,24 +127,24 @@ class ReportController extends Controller
                 DB::raw('SUM(sale_items.line_total) as revenue'),
                 DB::raw('SUM(sale_items.quantity * COALESCE(sale_items.cost_price,0)) as cost'),
             ])
-            ->groupBy('product_variants.id', 'products.name', 'product_variants.sku')
+            ->groupBy('product_variants.id','products.name','product_variants.sku')
             ->orderByDesc('revenue')
             ->limit(10)->get()
             ->map(fn($p) => [
                 'name'    => $p->name,
                 'sku'     => $p->sku,
-                'qty_sold' => (int)$p->qty_sold,
+                'qty_sold'=> (int)$p->qty_sold,
                 'revenue' => (float)$p->revenue,
                 'profit'  => (float)($p->revenue - $p->cost),
             ])->values();
 
         // ── Slow products ──────────────────────
-        $slowProducts = SaleItem::join('sales', 'sales.id', '=', 'sale_items.sale_id')
-            ->join('product_variants', 'product_variants.id', '=', 'sale_items.variant_id')
-            ->join('products', 'products.id', '=', 'product_variants.product_id')
-            ->whereBetween('sales.created_at', [$from, $to])
-            ->where('sales.status', 'completed')
-            ->where('product_variants.is_active', true)
+        $slowProducts = SaleItem::join('sales','sales.id','=','sale_items.sale_id')
+            ->join('product_variants','product_variants.id','=','sale_items.variant_id')
+            ->join('products','products.id','=','product_variants.product_id')
+            ->whereBetween('sales.created_at',[$from,$to])
+            ->where('sales.status','completed')
+            ->where('product_variants.is_active',true)
             ->select([
                 'products.name',
                 'product_variants.sku',
@@ -153,22 +152,22 @@ class ReportController extends Controller
                 DB::raw('SUM(sale_items.quantity) as qty_sold'),
                 DB::raw('SUM(sale_items.line_total) as revenue'),
             ])
-            ->groupBy('product_variants.id', 'products.name', 'product_variants.sku', 'product_variants.stock_quantity')
+            ->groupBy('product_variants.id','products.name','product_variants.sku','product_variants.stock_quantity')
             ->orderBy('qty_sold')
             ->limit(10)->get()
             ->map(fn($p) => [
                 'name'    => $p->name,
                 'sku'     => $p->sku,
-                'qty_sold' => (int)$p->qty_sold,
+                'qty_sold'=> (int)$p->qty_sold,
                 'stock'   => (int)$p->stock,
                 'revenue' => (float)$p->revenue,
             ])->values();
 
         // ── Margin table ───────────────────────
-        $marginTable = ProductVariant::join('products', 'products.id', '=', 'product_variants.product_id')
-            ->where('product_variants.is_active', true)
+        $marginTable = ProductVariant::join('products','products.id','=','product_variants.product_id')
+            ->where('product_variants.is_active',true)
             ->whereNotNull('product_variants.cost_price')
-            ->where('product_variants.cost_price', '>', 0)
+            ->where('product_variants.cost_price','>',0)
             ->select([
                 'products.name',
                 'product_variants.sku',
@@ -182,7 +181,7 @@ class ReportController extends Controller
                 'price'      => (float)$p->price,
                 'cost'       => (float)$p->cost,
                 'margin'     => $p->price > 0 ? round((($p->price - $p->cost) / $p->price) * 100, 1) : 0,
-                'profit_unit' => round($p->price - $p->cost, 2),
+                'profit_unit'=> round($p->price - $p->cost, 2),
             ])
             ->sortByDesc('margin')->values();
 
@@ -205,33 +204,33 @@ class ReportController extends Controller
         $avgDailySales = $totalRevenue / $dayCount;
 
         // ── Inventory ──────────────────────────
-        $stockZero  = ProductVariant::where('is_active', true)->where('stock_quantity', 0)->count();
-        $stockLow   = ProductVariant::join('products', 'products.id', '=', 'product_variants.product_id')
-            ->where('product_variants.is_active', true)
-            ->where('product_variants.stock_quantity', '>', 0)
+        $stockZero  = ProductVariant::where('is_active',true)->where('stock_quantity',0)->count();
+        $stockLow   = ProductVariant::join('products','products.id','=','product_variants.product_id')
+            ->where('product_variants.is_active',true)
+            ->where('product_variants.stock_quantity','>',0)
             ->whereRaw('product_variants.stock_quantity <= COALESCE(products.low_stock_threshold,10)')
             ->count();
-        $stockOk    = ProductVariant::join('products', 'products.id', '=', 'product_variants.product_id')
-            ->where('product_variants.is_active', true)
+        $stockOk    = ProductVariant::join('products','products.id','=','product_variants.product_id')
+            ->where('product_variants.is_active',true)
             ->whereRaw('product_variants.stock_quantity > COALESCE(products.low_stock_threshold,10)')
             ->count();
         $expiring30 = ProductVariant::whereNotNull('expiry_date')
-            ->whereDate('expiry_date', '>=', today())
-            ->whereDate('expiry_date', '<=', today()->addDays(30))
+            ->whereDate('expiry_date','>=',today())
+            ->whereDate('expiry_date','<=',today()->addDays(30))
             ->count();
 
-        $invValueCost = ProductVariant::join('products', 'products.id', '=', 'product_variants.product_id')
+        $invValueCost = ProductVariant::join('products','products.id','=','product_variants.product_id')
             ->selectRaw('SUM(product_variants.stock_quantity * COALESCE(product_variants.cost_price,0)) as val')
             ->value('val') ?? 0;
 
-        $invValueRetail = ProductVariant::join('products', 'products.id', '=', 'product_variants.product_id')
-            ->selectRaw('SUM(product_variants.stock_quantity * COALESCE(product_variants.price, 0)) as val')
+        $invValueRetail = ProductVariant::join('products','products.id','=','product_variants.product_id')
+            ->selectRaw('SUM(product_variants.stock_quantity * COALESCE(product_variants.price,  0)) as val')
             ->value('val') ?? 0;
 
-        $criticalStock = ProductVariant::join('products', 'products.id', '=', 'product_variants.product_id')
-            ->join('categories', 'categories.id', '=', 'products.category_id')
-            ->where('product_variants.is_active', true)
-            ->where(fn($q) => $q->where('product_variants.stock_quantity', 0)
+        $criticalStock = ProductVariant::join('products','products.id','=','product_variants.product_id')
+            ->join('categories','categories.id','=','products.category_id')
+            ->where('product_variants.is_active',true)
+            ->where(fn($q) => $q->where('product_variants.stock_quantity',0)
                 ->orWhereRaw('product_variants.stock_quantity <= COALESCE(products.low_stock_threshold,10)'))
             ->select([
                 'products.name',
@@ -253,49 +252,45 @@ class ReportController extends Controller
                 'threshold'  => (int)($p->threshold ?? 10),
                 'cost_value' => (float)$p->cost_value,
                 'expiry'     => $p->expiry_date?->format('d M Y'),
-                'expiry_days' => (int)($p->expiry_days ?? 9999),
+                'expiry_days'=> (int)($p->expiry_days ?? 9999),
             ])->values();
 
-        $invByCategory = SaleItem::join('product_variants', 'product_variants.id', '=', 'sale_items.variant_id')
-            ->join('products', 'products.id', '=', 'product_variants.product_id')
-            ->join('categories', 'categories.id', '=', 'products.category_id')
+        $invByCategory = SaleItem::join('product_variants','product_variants.id','=','sale_items.variant_id')
+            ->join('products','products.id','=','product_variants.product_id')
+            ->join('categories','categories.id','=','products.category_id')
             ->select('categories.name', DB::raw('SUM(product_variants.stock_quantity * COALESCE(product_variants.cost_price,0)) as value'))
-            ->groupBy('categories.id', 'categories.name')
+            ->groupBy('categories.id','categories.name')
             ->orderByDesc('value')
             ->limit(8)->get()
             ->map(fn($c) => ['name' => $c->name, 'value' => (float)$c->value])->values();
 
         // ── Cashiers ───────────────────────────
-        $cashierData = Shift::join('users', 'users.id', '=', 'shifts.user_id')
-            ->leftJoin('sales', 'sales.shift_id', '=', 'shifts.id')
-            ->whereBetween('shifts.opened_at', [$from, $to])
+        $cashierData = Shift::join('users','users.id','=','shifts.user_id')
+            ->leftJoin('sales','sales.shift_id','=','shifts.id')
+            ->whereBetween('shifts.opened_at',[$from,$to])
             ->select([
                 'shifts.user_id as id',
                 'users.name',
-                'users.photo',
                 DB::raw('COUNT(DISTINCT shifts.id) as shift_count'),
                 DB::raw('COUNT(sales.id) as tx_count'),
                 DB::raw('SUM(CASE WHEN sales.status="completed" THEN sales.total_amount ELSE 0 END) as total_sales'),
             ])
-            ->groupBy('shifts.user_id', 'users.name', 'users.photo')  
-            // here by adding users.photo the issue of the report page resolved
+            ->groupBy('shifts.user_id','users.name')
             ->orderByDesc('total_sales')
             ->get();
 
         $maxSales = $cashierData->max('total_sales') ?: 1;
-        
         $cashiers = $cashierData->map(fn($c) => [
             'id'          => $c->id,
             'name'        => $c->name,
-            'photo'       => $c->photo,
             'shift_count' => (int)$c->shift_count,
             'tx_count'    => (int)$c->tx_count,
             'total_sales' => (float)$c->total_sales,
             'avg_ticket'  => $c->tx_count > 0 ? round($c->total_sales / $c->tx_count, 0) : 0,
-            'pct'         => round(($c->total_sales / max($maxSales, 1)) * 100, 1),
+            'pct'         => round(($c->total_sales / $maxSales) * 100, 1),
         ])->values();
 
-        $shifts = Shift::join('users', 'users.id', '=', 'shifts.user_id')
+        $shifts = Shift::join('users','users.id','=','shifts.user_id')
             ->select([
                 'shifts.id',
                 'users.name as cashier',
@@ -308,7 +303,7 @@ class ReportController extends Controller
                 'shifts.discrepancy_note',
                 'shifts.is_closed',
             ])
-            ->whereBetween('shifts.opened_at', [$from, $to])
+            ->whereBetween('shifts.opened_at',[$from,$to])
             ->orderByDesc('shifts.opened_at')
             ->limit(20)->get()
             ->map(fn($s) => [
@@ -325,55 +320,37 @@ class ReportController extends Controller
             ])->values();
 
         // ── Loans ──────────────────────────────
-        $loanOutstanding     = Loan::where('status', 'active')->sum('remaining_balance');
-        $loanActiveCount     = Loan::where('status', 'active')->count();
-        $loanOverdue         = Loan::where('status', 'overdue')->count();
-        $loanOverdueAmount   = Loan::where('status', 'overdue')->sum('remaining_balance');
-        $loanNewCount        = Loan::whereBetween('created_at', [$from, $to])->count();
-        $loanNewAmount       = Loan::whereBetween('created_at', [$from, $to])->sum('original_amount');
-        $loanCollected       = LoanPayment::whereBetween('created_at', [$from, $to])->sum('amount');
-        $loanPaymentCount    = LoanPayment::whereBetween('created_at', [$from, $to])->count();
+        $loanOutstanding     = Loan::where('status','active')->sum('remaining_balance');
+        $loanActiveCount     = Loan::where('status','active')->count();
+        $loanOverdue         = Loan::where('status','overdue')->count();
+        $loanOverdueAmount   = Loan::where('status','overdue')->sum('remaining_balance');
+        $loanNewCount        = Loan::whereBetween('created_at',[$from,$to])->count();
+        $loanNewAmount       = Loan::whereBetween('created_at',[$from,$to])->sum('original_amount');
+        $loanCollected       = LoanPayment::whereBetween('created_at',[$from,$to])->sum('amount');
+        $loanPaymentCount    = LoanPayment::whereBetween('created_at',[$from,$to])->count();
 
         // Aging buckets
         $now = now();
         $loanAging = [
-            [
-                'label' => 'Not yet due',
-                'fill' => '#15803d',
-                'color' => 'color:var(--green)',
-                'amount' => Loan::where('status', 'active')->where('due_date', '>=', $now)->sum('remaining_balance'),
-                'count' => Loan::where('status', 'active')->where('due_date', '>=', $now)->count()
-            ],
-            [
-                'label' => '1–30 days overdue',
-                'fill' => '#d97706',
-                'color' => 'color:var(--amber)',
-                'amount' => Loan::where('status', 'overdue')->whereBetween('due_date', [$now->copy()->subDays(30), $now])->sum('remaining_balance'),
-                'count' => Loan::where('status', 'overdue')->whereBetween('due_date', [$now->copy()->subDays(30), $now])->count()
-            ],
-            [
-                'label' => '31–90 days overdue',
-                'fill' => '#dc2626',
-                'color' => 'color:var(--red)',
-                'amount' => Loan::where('status', 'overdue')->whereBetween('due_date', [$now->copy()->subDays(90), $now->copy()->subDays(31)])->sum('remaining_balance'),
-                'count' => Loan::where('status', 'overdue')->whereBetween('due_date', [$now->copy()->subDays(90), $now->copy()->subDays(31)])->count()
-            ],
-            [
-                'label' => '90+ days overdue',
-                'fill' => '#7c3aed',
-                'color' => 'color:var(--violet)',
-                'amount' => Loan::where('status', 'overdue')->where('due_date', '<', $now->copy()->subDays(90))->sum('remaining_balance'),
-                'count' => Loan::where('status', 'overdue')->where('due_date', '<', $now->copy()->subDays(90))->count()
-            ],
+            ['label'=>'Not yet due','fill'=>'#15803d','color'=>'color:var(--green)',
+             'amount'=> Loan::where('status','active')->where('due_date','>=',$now)->sum('remaining_balance'),
+             'count' => Loan::where('status','active')->where('due_date','>=',$now)->count()],
+            ['label'=>'1–30 days overdue','fill'=>'#d97706','color'=>'color:var(--amber)',
+             'amount'=> Loan::where('status','overdue')->whereBetween('due_date',[$now->copy()->subDays(30),$now])->sum('remaining_balance'),
+             'count' => Loan::where('status','overdue')->whereBetween('due_date',[$now->copy()->subDays(30),$now])->count()],
+            ['label'=>'31–90 days overdue','fill'=>'#dc2626','color'=>'color:var(--red)',
+             'amount'=> Loan::where('status','overdue')->whereBetween('due_date',[$now->copy()->subDays(90),$now->copy()->subDays(31)])->sum('remaining_balance'),
+             'count' => Loan::where('status','overdue')->whereBetween('due_date',[$now->copy()->subDays(90),$now->copy()->subDays(31)])->count()],
+            ['label'=>'90+ days overdue','fill'=>'#7c3aed','color'=>'color:var(--violet)',
+             'amount'=> Loan::where('status','overdue')->where('due_date','<',$now->copy()->subDays(90))->sum('remaining_balance'),
+             'count' => Loan::where('status','overdue')->where('due_date','<',$now->copy()->subDays(90))->count()],
         ];
         $agingTotal = collect($loanAging)->sum('amount') ?: 1;
-        foreach ($loanAging as &$b) {
-            $b['pct'] = round(($b['amount'] / $agingTotal) * 100, 1);
-        }
+        foreach ($loanAging as &$b) { $b['pct'] = round(($b['amount']/$agingTotal)*100,1); }
 
-        $overdueLoans = Loan::join('customers', 'customers.id', '=', 'loans.customer_id')
-            ->where('loans.status', 'overdue')
-            ->select(['loans.id', 'customers.name as customer', 'customers.phone', 'loans.original_amount', 'loans.amount_paid', 'loans.remaining_balance', 'loans.due_date'])
+        $overdueLoans = Loan::join('customers','customers.id','=','loans.customer_id')
+            ->where('loans.status','overdue')
+            ->select(['loans.id','customers.name as customer','customers.phone','loans.original_amount','loans.amount_paid','loans.remaining_balance','loans.due_date'])
             ->orderBy('loans.due_date')
             ->limit(10)->get()
             ->map(fn($l) => [
@@ -384,7 +361,7 @@ class ReportController extends Controller
                 'paid'        => (float)$l->amount_paid,
                 'remaining'   => (float)$l->remaining_balance,
                 'due_date'    => Carbon::parse($l->due_date)->format('d M Y'),
-                'days_overdue' => Carbon::parse($l->due_date)->diffInDays(today()),
+                'days_overdue'=> Carbon::parse($l->due_date)->diffInDays(today()),
             ])->values();
 
         // Loan issued vs collected series
@@ -451,7 +428,7 @@ class ReportController extends Controller
             'loan_aging'          => $loanAging,
             'overdue_loans'       => $overdueLoans,
             'loan_issued_series'  => $loanIssuedSeries,
-            'loan_collected_series' => $loanCollectedSeries,
+            'loan_collected_series'=> $loanCollectedSeries,
         ]);
     }
 
@@ -463,21 +440,21 @@ class ReportController extends Controller
     {
         $shift = Shift::with('user')->findOrFail($request->input('shift_id'));
 
-        $shiftSales = Sale::where('shift_id', $shift->id)->where('status', 'completed');
+        $shiftSales = Sale::where('shift_id', $shift->id)->where('status','completed');
         $totalSales = $shiftSales->sum('total_amount');
-        $cashSales  = Sale::where('shift_id', $shift->id)->where('status', 'completed')->where('payment_method', 'cash')->sum('total_amount');
-        $loanSales  = Sale::where('shift_id', $shift->id)->where('status', 'completed')->where('payment_method', 'loan')->sum('total_amount');
-        $discounts  = Sale::where('shift_id', $shift->id)->where('status', 'completed')->sum('discount_amount');
-        $returns    = Sale::where('shift_id', $shift->id)->where('sale_type', 'return')->sum('total_amount');
-        $txCount    = Sale::where('shift_id', $shift->id)->where('status', 'completed')->count();
-        $itemsSold  = SaleItem::join('sales', 'sales.id', '=', 'sale_items.sale_id')
-            ->where('sales.shift_id', $shift->id)->where('sales.status', 'completed')
+        $cashSales  = Sale::where('shift_id',$shift->id)->where('status','completed')->where('payment_method','cash')->sum('total_amount');
+        $loanSales  = Sale::where('shift_id',$shift->id)->where('status','completed')->where('payment_method','loan')->sum('total_amount');
+        $discounts  = Sale::where('shift_id',$shift->id)->where('status','completed')->sum('discount_amount');
+        $returns    = Sale::where('shift_id',$shift->id)->where('sale_type','return')->sum('total_amount');
+        $txCount    = Sale::where('shift_id',$shift->id)->where('status','completed')->count();
+        $itemsSold  = SaleItem::join('sales','sales.id','=','sale_items.sale_id')
+            ->where('sales.shift_id',$shift->id)->where('sales.status','completed')
             ->sum('sale_items.quantity');
 
         return response()->json([
             'cashier'         => $shift->user->name,
             'shift_date'      => Carbon::parse($shift->opened_at)->format('d M Y, H:i') .
-                ($shift->closed_at ? ' → ' . Carbon::parse($shift->closed_at)->format('H:i') : ' (Active)'),
+                                 ($shift->closed_at ? ' → '.Carbon::parse($shift->closed_at)->format('H:i') : ' (Active)'),
             'total_sales'     => (float)$totalSales,
             'cash_sales'      => (float)$cashSales,
             'loan_sales'      => (float)$loanSales,
@@ -485,12 +462,12 @@ class ReportController extends Controller
             'returns'         => (float)$returns,
             'tx_count'        => $txCount,
             'items_sold'      => (int)$itemsSold,
-            'avg_ticket'      => $txCount > 0 ? round($totalSales / $txCount, 0) : 0,
+            'avg_ticket'      => $txCount > 0 ? round($totalSales/$txCount,0) : 0,
             'starting_cash'   => (float)$shift->starting_cash,
             'expected_cash'   => $shift->expected_cash ? (float)$shift->expected_cash : (float)($shift->starting_cash + $cashSales - $returns),
             'actual_cash'     => $shift->actual_cash     ? (float)$shift->actual_cash     : null,
             'discrepancy'     => $shift->discrepancy     ? (float)$shift->discrepancy     : null,
-            'discrepancy_note' => $shift->discrepancy_note,
+            'discrepancy_note'=> $shift->discrepancy_note,
         ]);
     }
 
@@ -505,19 +482,19 @@ class ReportController extends Controller
         $type = $request->input('type', 'csv');
 
         $sales = Sale::with('customer:id,name')
-            ->whereBetween('created_at', [$from, $to])
-            ->where('status', 'completed')
+            ->whereBetween('created_at',[$from,$to])
+            ->where('status','completed')
             ->orderByDesc('created_at')
             ->get();
 
         $filename = "sales-{$from->format('Y-m-d')}-to-{$to->format('Y-m-d')}.csv";
-        $headers  = ['Content-Type' => 'text/csv', 'Content-Disposition' => "attachment; filename=\"{$filename}\""];
+        $headers  = ['Content-Type'=>'text/csv','Content-Disposition'=>"attachment; filename=\"{$filename}\""];
 
-        $callback = function () use ($sales) {
-            $handle = fopen('php://output', 'w');
-            fputcsv($handle, ['Sale ID', 'Customer', 'Date', 'Payment Method', 'Subtotal', 'Discount', 'Total', 'Status']);
+        $callback = function() use ($sales) {
+            $handle = fopen('php://output','w');
+            fputcsv($handle,['Sale ID','Customer','Date','Payment Method','Subtotal','Discount','Total','Status']);
             foreach ($sales as $s) {
-                fputcsv($handle, [
+                fputcsv($handle,[
                     $s->local_id,
                     $s->customer?->name ?? 'Walk-in',
                     $s->created_at->format('Y-m-d H:i'),
@@ -546,15 +523,14 @@ class ReportController extends Controller
         if ($granularity === 'hourly' && $days <= 2) {
             for ($h = 0; $h < 24; $h++) {
                 $labels[] = sprintf('%02d:00', $h);
-                $row = Sale::whereBetween('created_at', [$from->copy()->addHours($h), $from->copy()->addHours($h + 1)->subSecond()])
-                    ->where('status', 'completed')
+                $row = Sale::whereBetween('created_at',[$from->copy()->addHours($h),$from->copy()->addHours($h+1)->subSecond()])
+                    ->where('status','completed')
                     ->selectRaw('SUM(total_amount) as rev, SUM(discount_amount) as disc, payment_method')
                     ->first();
                 $rev = (float)($row->rev ?? 0);
                 $revenue[] = round($rev, 2);
                 $profit[]  = round($rev * 0.3, 2); // placeholder; replace with real cost join if needed
-                $cash[]    = 0;
-                $loan[] = 0;
+                $cash[]    = 0; $loan[] = 0;
             }
         } elseif ($granularity === 'monthly' || $days > 90) {
             $cursor = $from->copy()->startOfMonth();
@@ -589,8 +565,8 @@ class ReportController extends Controller
 
     private function appendDayRow(Carbon $start, Carbon $end, &$revenue, &$profit, &$cash, &$loan): void
     {
-        $rows = Sale::whereBetween('created_at', [$start, $end])
-            ->where('status', 'completed')
+        $rows = Sale::whereBetween('created_at',[$start,$end])
+            ->where('status','completed')
             ->selectRaw('SUM(total_amount) as rev, SUM(discount_amount) as disc, payment_method')
             ->groupBy('payment_method')->get()->keyBy('payment_method');
 
@@ -598,9 +574,9 @@ class ReportController extends Controller
         $loanVal  = (float)($rows['loan']->rev ?? 0);
         $rev      = $cashVal + $loanVal;
 
-        $costVal  = SaleItem::join('sales', 'sales.id', '=', 'sale_items.sale_id')
-            ->whereBetween('sales.created_at', [$start, $end])
-            ->where('sales.status', 'completed')
+        $costVal  = SaleItem::join('sales','sales.id','=','sale_items.sale_id')
+            ->whereBetween('sales.created_at',[$start,$end])
+            ->where('sales.status','completed')
             ->sum(DB::raw('sale_items.quantity * COALESCE(sale_items.cost_price,0)'));
 
         $revenue[] = round($rev, 2);
@@ -617,8 +593,8 @@ class ReportController extends Controller
 
         foreach ($labels as $_) {
             $end = $cursor->copy()->endOfDay();
-            $issued[]    = round(Loan::whereBetween('created_at', [$cursor->copy()->startOfDay(), $end])->sum('original_amount'), 2);
-            $collected[] = round(LoanPayment::whereBetween('created_at', [$cursor->copy()->startOfDay(), $end])->sum('amount'), 2);
+            $issued[]    = round(Loan::whereBetween('created_at',[$cursor->copy()->startOfDay(),$end])->sum('original_amount'), 2);
+            $collected[] = round(LoanPayment::whereBetween('created_at',[$cursor->copy()->startOfDay(),$end])->sum('amount'), 2);
             $cursor->addDay();
             if ($cursor->gt($to)) break;
         }

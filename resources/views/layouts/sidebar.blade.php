@@ -91,7 +91,7 @@
             <i class="fas fa-cloud-arrow-up"></i>
             <span class="sb-item-text">Backup & Sync</span>
         </a>
-        <a href="#" class="sb-item" data-tip="Settings">
+        <a href="{{ route('pos.settings') }}" class="sb-item" data-tip="Settings">
             <i class="fas fa-gear"></i>
             <span class="sb-item-text">Settings</span>
         </a>

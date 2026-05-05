@@ -45,7 +45,7 @@
             }
         }
     </script>
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @vite(['resources/css/app.css'])
 
     @stack('styles')
 </head>
@@ -56,7 +56,7 @@
         {{-- ════════ MOBILE OVERLAY ════════ --}}
         <div class="sidebar-overlay" @click="mobileOpen = false"></div>
 
-        
+
         {{-- ════════ SIDEBAR ════════ --}}
         @include('layouts.sidebar')
 
@@ -120,8 +120,16 @@
                 toggleTheme() {
                     this.darkMode = !this.darkMode;
                     localStorage.setItem('dark-mode', this.darkMode ? '1' : '0');
-                    this.applyDark();
                 },
+
+                init() {
+                    this.sidebarCollapsed = localStorage.getItem('sb-collapsed') === '1';
+                    this.darkMode = localStorage.getItem('dark-mode') === '1';
+                    this.lang = localStorage.getItem('app-lang') || 'en';
+                    this.applyLang();
+                    this.startClock();
+                },
+
 
                 applyDark() {
                     if (this.darkMode) {

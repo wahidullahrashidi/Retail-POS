@@ -43,7 +43,7 @@ class UserController extends Controller
         $tab  = $request->input('tab', 'all');
 
         $query = User::query()
-            ->join('roles', 'roles.id', '=', 'users.role_id')
+            ->leftJoin('roles', 'roles.id', '=', 'users.role_id')
             ->leftJoin(
                 DB::raw('(SELECT user_id, COUNT(*) as sale_count, SUM(total_amount) as total_sales
                           FROM sales WHERE status = "completed" GROUP BY user_id) as sa'),
@@ -63,8 +63,8 @@ class UserController extends Controller
                 'users.is_active',
                 'users.created_at',
                 DB::raw('users.pin_code IS NOT NULL AND users.pin_code != "" as has_pin'),
-                'roles.name as role_name',
-                'roles.display_name as role_display',
+                DB::raw('COALESCE(roles.name, "user") as role_name'),
+                DB::raw('COALESCE(roles.display_name, "User") as role_display'),
                 'roles.permissions',
                 DB::raw('COALESCE(sa.sale_count, 0) as sale_count'),
                 DB::raw('COALESCE(sa.total_sales, 0) as total_sales'),
@@ -127,6 +127,7 @@ class UserController extends Controller
             'role_id'     => 'required|integer|exists:roles,id',
             'password'    => $isUpdate ? 'nullable|min:8' : 'required|min:8',
             'pin_code'    => 'nullable|digits:4',
+            'permissions' => 'nullable|string',
             'photo'       => 'nullable|image|max:2048',
         ]);
 
@@ -138,7 +139,7 @@ class UserController extends Controller
             // ── Handle photo upload ──────────────
             if ($request->hasFile('photo')) {
                 $file      = $request->file('photo');
-                $filename  = 'user_' . time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+                $filename  = 'users/user_' . time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
                 $file->storeAs('public/users', $filename);
                 $photoPath = $filename;
 
@@ -162,6 +163,7 @@ class UserController extends Controller
                 'name'        => $request->name,
                 'email'       => $request->email,
                 'role_id'     => $request->role_id,
+                'permissions' => json_encode($permissions),
             ];
 
             if ($photoPath)             $fields['photo']    = $photoPath;

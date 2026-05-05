@@ -19,7 +19,7 @@ class POSController extends Controller
 {
     public function f()
     {
-        //
+        return view('shifts.close');
     }
 
     public function index()

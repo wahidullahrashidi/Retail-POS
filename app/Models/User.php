@@ -40,4 +40,9 @@ class User extends Authenticatable
     {
         return $this->belongsTo(Role::class);
     }
+    // App\Models\User.php
+    public function shifts()
+    {
+        return $this->hasMany(Shift::class, 'user_id');
+    }
 }

@@ -1,19 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
-@import './layout/theme.css';
-@import './layout/app-shell.css';
 @import 'tailwindcss';
 /* resources/css/app.css */
-@import './layout/theme.css';
-@import './layout/app-shell.css';
-@import './pages/inventory.css';
-@import './pages/customers.css';
-@import './pages/dashboard.css';
-@import './pages/pos-checkout.css';
-@import './pages/backup.css';
-@import './pages/users.css';
-@import './pages/sales.css';
-@import './pages/reports.css';
-
 
 
 

@@ -13,6 +13,7 @@ use App\Http\Controllers\PurchaseController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\BackupController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\SettingsController;
 
 
 Route::get('/', [AuthController::class, 'showLogin'])->name('login');
@@ -120,7 +121,30 @@ Route::middleware('auth')->group(function () {
         Route::post('/users/password',         [UserController::class, 'resetPassword'])->name('users.password');
         Route::get('/users/{user}/detail',     [UserController::class, 'detail'])->name('users.detail');
         Route::post('/users/{user}/toggle',    [UserController::class, 'toggle'])->name('users.toggle');
-        
+
+        // ── Settings ──────────────────────────────────────────
+
+        Route::get('/settings',                                    [SettingsController::class, 'page'])->name('settings');
+        Route::get('/settings/data',                               [SettingsController::class, 'index'])->name('settings.index');
+        Route::post('/settings/save',                              [SettingsController::class, 'save'])->name('settings.save');
+
+        // Categories
+        Route::get('/settings/categories',                         [SettingsController::class, 'categoriesIndex'])->name('settings.categories.index');
+        Route::post('/settings/categories/store',                  [SettingsController::class, 'categoryStore'])->name('settings.categories.store');
+        Route::delete('/settings/categories/{category}',           [SettingsController::class, 'categoryDelete'])->name('settings.categories.delete');
+
+        // Attributes
+        Route::get('/settings/attributes',                         [SettingsController::class, 'attributesIndex'])->name('settings.attributes.index');
+        Route::post('/settings/attributes/store',                  [SettingsController::class, 'attributeStore'])->name('settings.attributes.store');
+        Route::delete('/settings/attributes/{attribute}',          [SettingsController::class, 'attributeDelete'])->name('settings.attributes.delete');
+
+        // Attribute values
+        Route::post('/settings/attributes/values/store',           [SettingsController::class, 'valueStore'])->name('settings.attributes.values.store');
+        Route::delete('/settings/attributes/values/{value}',       [SettingsController::class, 'valueDelete'])->name('settings.attributes.values.delete');
+
+        // Hardware & Audit
+        Route::post('/settings/hardware/test',                     [SettingsController::class, 'hardwareTest'])->name('settings.hardware.test');
+        Route::get('/settings/audit',                              [SettingsController::class, 'auditLog'])->name('settings.audit');
         // just for error prevention:
         Route::get('/aa', [POSController::class, 'f'])->name('search');
     });

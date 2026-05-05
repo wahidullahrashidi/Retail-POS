@@ -23,3 +23,7 @@ _ide_helper.php
 Homestead.json
 Homestead.yaml
 Thumbs.db
+# Ignore Windows reserved device names
+public/COM*
+public/LPT*
+public/USB*
