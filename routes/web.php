@@ -20,6 +20,16 @@ Route::get('/', [AuthController::class, 'showLogin'])->name('login');
 Route::post('/login', [AuthController::class, 'login'])->name('login.post');
 Route::post('/login/pin', [AuthController::class, 'pinLogin'])->name('login.pin');
 
+Route::get('/lang/{locale}', function ($locale) {
+    if (! in_array($locale, ['en', 'ps', 'dr'])) {
+        abort(400);
+    }
+
+    session(['locale' => $locale]);
+
+    return redirect()->back();
+});
+
 Route::middleware('auth')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 

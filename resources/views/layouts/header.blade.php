@@ -17,7 +17,7 @@
         <div class="header-right">
 
             {{-- Theme toggle --}}
-            <button class="theme-toggle" @click="toggleTheme()" :title="darkMode ? 'Light mode' : 'Dark mode'">
+            <button class="theme-toggle" @click="toggleTheme()" :title="darkMode ? '{{ __('messages.light_mode') }}' : '{{ __('messages.dark_mode') }}'">
                 <i :class="darkMode ? 'fas fa-sun' : 'fas fa-moon'"></i>
             </button>
 
@@ -31,13 +31,13 @@
                 </button>
                 <div class="lang-menu" x-show="open" x-cloak>
                     <button class="lang-option" :class="lang==='en'?'active':''" @click="setLang('en'); open=false">
-                        English
+                        {{ __('messages.english') }}
                     </button>
                     <button class="lang-option" :class="lang==='ps'?'active':''" @click="setLang('ps'); open=false" style="font-family:serif">
-                        پښتو
+                        {{ __('messages.pashto') }}
                     </button>
                     <button class="lang-option" :class="lang==='dr'?'active':''" @click="setLang('dr'); open=false" style="font-family:serif">
-                        دری
+                        {{ __('messages.dari') }}
                     </button>
                 </div>
             </div>

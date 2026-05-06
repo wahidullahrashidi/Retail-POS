@@ -7,14 +7,18 @@ use App\Http\Middleware\CheckActiveShift;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
-        web: __DIR__.'/../routes/web.php',
-        commands: __DIR__.'/../routes/console.php',
+        web: __DIR__ . '/../routes/web.php',
+        commands: __DIR__ . '/../routes/console.php',
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
         // Register middleware alias for route-specific use
         $middleware->alias([
             'active.shift' => CheckActiveShift::class,
+            'web' => [
+                \App\Http\Middleware\SetLocale::class,
+            ],
+
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

@@ -12,14 +12,14 @@
     ══════════════════════════════ --}}
         <div class="topbar">
             <div class="topbar-left">
-                <h1>Afghan POS <em style="font-style:italic;color:var(--gold);">Dashboard</em></h1>
-                <p>Welcome back — here's what's happening right now.</p>
+                <h1>{{ __('messages.afghan_pos') }} <em style="font-style:italic;color:var(--gold);">{{ __('messages.dashboard') }}</em></h1>
+                <p>{{ __('messages.welcome_back') }}</p>
             </div>
             <div class="topbar-right">
                 {{-- <div class="live-clock" id="liveClock">--:--:--</div> --}}
-                <div class="shift-badge">Shift Active</div>
+                <div class="shift-badge">{{ __('messages.shift_active') }}</div>
                 <a href="{{ route('pos.poscheck') }}" class="btn-new-sale">
-                    <i class="fas fa-bolt"></i> New Sale
+                    <i class="fas fa-bolt"></i> {{ __('messages.new_sale') }}
                 </a>
             </div>
         </div>
@@ -35,7 +35,7 @@
                     {{-- Today's Sales --}}
                     <div class="stat-card gold">
                         <div class="stat-label">
-                            Today's Sales
+                            {{ __('messages.todays_sales') }}
                             @php
                                 $salesDir =
                                     $todaySales > $yesterdaySales
@@ -57,14 +57,14 @@
                             </span>
                         </div>
                         <div class="stat-value"><span>Af</span>{{ number_format($todaySales) }}</div>
-                        <div class="stat-sub">vs Af {{ number_format($yesterdaySales) }} yesterday</div>
+                        <div class="stat-sub">vs Af {{ number_format($yesterdaySales) }} {{ __('messages.yesterday') }}</div>
                         <i class="fas fa-coins stat-icon"></i>
                     </div>
 
-                    {{-- Active Loans --}}
+                    {{-- {{ __('messages.active_loans') }} --}}
                     <div class="stat-card blue">
                         <div class="stat-label">
-                            Active Loans
+                            {{ __('messages.active_loans') }}
                             @php
                                 $loanDir =
                                     $loanToday > $loanYesterday
@@ -82,14 +82,14 @@
                             </span>
                         </div>
                         <div class="stat-value"><span>Af</span>{{ number_format($loanToday) }}</div>
-                        <div class="stat-sub">remaining balance today</div>
+                        <div class="stat-sub">{{ __('messages.remaining_balance_today') }}</div>
                         <i class="fas fa-file-invoice-dollar stat-icon"></i>
                     </div>
 
                     {{-- Net Profit --}}
                     <div class="stat-card green">
                         <div class="stat-label">
-                            Net Profit
+                            {{ __('messages.net_profit') }}
                             @php
                                 $profitDir =
                                     $netProfitToday > $netProfitYesterday
@@ -106,14 +106,14 @@
                             </span>
                         </div>
                         <div class="stat-value"><span>Af</span>{{ number_format($netProfitToday) }}</div>
-                        <div class="stat-sub">sales − cost of goods</div>
+                        <div class="stat-sub">{{ __('messages.sales') }} − {{ __('messages.cost_of_goods') }}</div>
                         <i class="fas fa-chart-line stat-icon"></i>
                     </div>
 
                     {{-- Customers --}}
                     <div class="stat-card red">
                         <div class="stat-label">
-                            Customers
+                            {{ __('messages.customers') }}
                             @php
                                 $custDir =
                                     $todaysCustomers > $yesterdayCustomers
@@ -135,7 +135,7 @@
                             </span>
                         </div>
                         <div class="stat-value">{{ number_format($todaysCustomers) }}</div>
-                        <div class="stat-sub">vs {{ $yesterdayCustomers }} yesterday</div>
+                        <div class="stat-sub">vs {{ $yesterdayCustomers }} {{ __('messages.yesterday') }}</div>
                         <i class="fas fa-users stat-icon"></i>
                     </div>
 
@@ -143,51 +143,51 @@
                 {{-- /stat-grid --}}
 
                 {{-- QUICK SALE ENTRY --}}
-                <div class="card" x-data="cartSystem()" x-init="init()">
+                {{-- <div class="card" x-data="cartSystem()" x-init="init()"> --}}
 
-                    <div class="card-head">
+                    {{-- <div class="card-head">
                         <div class="card-head-title">
                             <i class="fas fa-bolt"></i>
-                            Quick Sale Entry
+                            {{ __('messages.quick_sale_entry') }}
                         </div>
                         <span class="card-head-badge"
-                            x-text="cart.length ? cart.length + ' item(s) in cart' : 'Scan or Search'">
+                            x-text="cart.length ? cart.length + ' item(s) in cart' : '{{ __('messages.scan_or_search') }}'">
                         </span>
-                    </div>
+                    </div> --}}
 
-                    <div class="sale-body">
+                    {{-- <div class="sale-body"> --}}
 
                         {{-- Search --}}
-                        <div class="search-row">
+                        {{-- <div class="search-row">
                             <div class="search-wrap">
                                 <i class="fas fa-barcode"></i>
                                 <input class="search-input" type="text" x-model="query" @input.debounce.400ms="search()"
                                     @keydown.enter="search()" @keydown.escape="clearSearch()"
-                                    placeholder="Barcode, SKU, or product name...">
+                                    placeholder="{{ __('messages.search_placeholder') }}">
                             </div>
                             <button type="button" class="btn-search" @click="search()">
-                                <i class="fas fa-search"></i> Search
+                                <i class="fas fa-search"></i> {{ __('messages.search') }}
                             </button>
                             <button type="button" class="btn-clear" x-show="query" x-cloak @click="clearSearch()">
                                 <i class="fas fa-times"></i>
                             </button>
-                        </div>
+                        </div> --}}
 
                         {{-- Spinner --}}
-                        <div class="spinner-row" x-show="searching" x-cloak>
-                            <i class="fas fa-spinner fa-spin"></i> Searching...
-                        </div>
+                        {{-- <div class="spinner-row" x-show="searching" x-cloak>
+                            <i class="fas fa-spinner fa-spin"></i> {{ __('messages.searching') }}
+                        </div> --}}
 
                         {{-- ── SEARCH RESULTS ── --}}
-                        <div x-show="query && !searching" x-cloak>
+                        {{-- <div x-show="query && !searching" x-cloak>
                             <div class="no-results" x-show="searchResults.length === 0">
                                 <i class="fas fa-magnifying-glass"></i>
-                                No products found for "<span x-text="query"></span>"
+                                {{ __('messages.no_products_found_for') }} "<span x-text="query"></span>"
                             </div>
                             <div x-show="searchResults.length > 0">
                                 <div class="section-row">
-                                    <div class="section-label"><i class="fas fa-list"></i> Results</div>
-                                    <div class="section-count" x-text="searchResults.length + ' found'"></div>
+                                    <div class="section-label"><i class="fas fa-list"></i> {{ __('messages.results') }}</div>
+                                    <div class="section-count" x-text="searchResults.length + ' {{ __('messages.found') }}'"></div>
                                 </div>
                                 <div class="mini-table-wrap">
                                     <table class="mini-table">
@@ -226,31 +226,31 @@
                                     </table>
                                 </div>
                             </div>
-                        </div>
+                        </div> --}}
 
                         {{-- ── TRENDING ── --}}
-                        <div x-show="!query" x-cloak>
-                            <div class="section-row">
+                        {{-- <div x-show="!query" x-cloak> --}}
+                            {{-- <div class="section-row">
                                 <div class="section-label">
                                     <i class="fas fa-fire" style="color:var(--amber)"></i> Trending This Week
                                 </div>
                                 <div x-show="trendingLoading" style="color:var(--text-3);font-size:11px">
                                     <i class="fas fa-spinner fa-spin"></i>
                                 </div>
-                            </div>
+                            </div> --}}
 
                             {{-- Skeleton --}}
-                            <div class="trending-grid" x-show="trendingLoading">
+                            {{-- <div class="trending-grid" x-show="trendingLoading">
                                 <template x-for="i in [1,2,3,4,5,6]" :key="i">
                                     <div class="skel-card">
                                         <div class="skel" style="height:11px;width:75%;margin-bottom:8px"></div>
                                         <div class="skel" style="height:11px;width:45%"></div>
                                     </div>
                                 </template>
-                            </div>
+                            </div> --}}
 
                             {{-- Products --}}
-                            <div class="trending-grid" x-show="!trendingLoading">
+                            {{-- <div class="trending-grid" x-show="!trendingLoading">
                                 <template x-for="p in trendingProducts" :key="p.variant_id">
                                     <button type="button" class="trend-btn" @click="addToCart(p)"
                                         :disabled="p.stock_quantity === 0">
@@ -263,11 +263,11 @@
                                 <div x-show="!trendingProducts.length" class="empty-state" style="grid-column:1/-1">
                                     <i class="fas fa-box-open"></i> No trending data yet
                                 </div>
-                            </div>
-                        </div>
+                            </div> --}}
+                        {{-- </div> --}}
 
                         {{-- ── CART ── --}}
-                        <div x-show="cart.length > 0" x-cloak style="margin-top:.75rem">
+                        {{-- <div x-show="cart.length > 0" x-cloak style="margin-top:.75rem">
                             <div class="section-row">
                                 <div class="section-label"><i class="fas fa-cart-shopping"></i> Cart</div>
                                 <div style="display:flex;align-items:center;gap:12px">
@@ -323,16 +323,16 @@
                                     </tbody>
                                 </table>
                             </div>
-                        </div>
+                        </div> --}}
 
                         {{-- Empty cart hint --}}
-                        <div x-show="cart.length === 0 && !query" x-cloak
+                        {{-- <div x-show="cart.length === 0 && !query" x-cloak
                             style="text-align:center;padding:.5rem 0 .75rem;font-size:11px;color:var(--text-3)">
                             Add products from trending or search to start a sale
-                        </div>
+                        </div> --}}
 
                         {{-- CHECKOUT BAR --}}
-                        <div class="checkout-bar">
+                        {{-- <div class="checkout-bar">
                             <div>
                                 <div class="checkout-total-label">Total Amount Due</div>
                                 <div class="checkout-total-val">
@@ -343,10 +343,10 @@
                                 :disabled="cart.length === 0">
                                 <i class="fas fa-bolt" style="margin-right:6px"></i> CHECKOUT
                             </button>
-                        </div>
+                        </div> --}}
 
-                    </div>
-                </div>
+                    {{-- </div> --}}
+                {{-- </div> --}}
                 {{-- /quick sale --}}
 
                 {{-- QUICK ACTIONS --}}
@@ -531,7 +531,7 @@
                 </div>
 
                 {{-- HARDWARE STATUS --}}
-                <div class="card">
+                {{-- <div class="card">
                     <div class="card-head">
                         <div class="card-head-title">
                             <i class="fas fa-microchip"></i> Hardware Status
@@ -580,7 +580,7 @@
                             <div class="hw-dot ok"></div>
                         </div>
                     </div>
-                </div>
+                </div> --}}
 
             </div>
             {{-- /col-right --}}

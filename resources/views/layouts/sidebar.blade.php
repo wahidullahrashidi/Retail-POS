@@ -26,74 +26,74 @@
     <nav class="sb-nav">
         {{-- Store section --}}
         <div class="sb-section-label flex items-center">
-            <span class="sb-label-text">Store</span>
-            <button class="sb-toggle" @click="toggleSidebar()" title="Toggle sidebar">
+            <span class="sb-label-text">{{ __('messages.store') }}</span>
+            <button class="sb-toggle" @click="toggleSidebar()" title="{{ __('messages.toggle_sidebar') }}">
                 <i class="fas fa-chevron-left"></i>
             </button>
         </div>
-        <a href="{{ route('pos.dashboard') }}" class="sb-item {{ request()->routeIs('pos.dashboard') ? 'active' : '' }}"
-            data-tip="Dashboard">
+        {{-- <a href="{{ route('pos.dashboard') }}" class="sb-item {{ request()->routeIs('pos.dashboard') ? 'active' : '' }}"
+            data-tip="{{ __('messages.dashboard') }}">
             <i class="fas fa-gauge-high"></i>
-            <span class="sb-item-text">Dashboard</span>
+            <span class="sb-item-text">{{ __('messages.dashboard') }}</span> --}}
         </a>
         <a href="{{ route('pos.poscheck') }}" class="sb-item {{ request()->routeIs('pos.poscheck') ? 'active' : '' }}"
-            data-tip="POS Checkout">
+            data-tip="{{ __('messages.pos_checkout') }}">
             <i class="fas fa-cash-register"></i>
-            <span class="sb-item-text">POS Checkout</span>
+            <span class="sb-item-text">{{ __('messages.pos_checkout') }}</span>
         </a>
         <a href="{{ route('pos.inventory') }}" class="sb-item {{ request()->routeIs('pos.inventory') ? 'active' : '' }}"
-            data-tip="Inventory">
+            data-tip="{{ __('messages.inventory') }}">
             <i class="fas fa-boxes-stacked"></i>
-            <span class="sb-item-text">Inventory</span>
+            <span class="sb-item-text">{{ __('messages.inventory') }}</span>
         </a>
         <a href="{{ route('pos.customers.page') }}"
-            class="sb-item {{ request()->routeIs('pos.customers.page') ? 'active' : '' }}" data-tip="Customers">
+            class="sb-item {{ request()->routeIs('pos.customers.page') ? 'active' : '' }}" data-tip="{{ __('messages.customers') }}">
             <i class="fas fa-users"></i>
-            <span class="sb-item-text">Customers</span>
+            <span class="sb-item-text">{{ __('messages.customers') }}</span>
         </a>
         <a href="{{ route('pos.suppliers.page') }}"
-            class="sb-item {{ request()->routeIs('pos.suppliers.page') ? 'active' : '' }}" data-tip="Suppliers">
+            class="sb-item {{ request()->routeIs('pos.suppliers.page') ? 'active' : '' }}" data-tip="{{ __('messages.suppliers') }}">
             <i class="fas fa-truck"></i>
-            <span class="sb-item-text">Suppliers</span>
+            <span class="sb-item-text">{{ __('messages.suppliers') }}</span>
         </a>
         <a href="{{ route('pos.sales.page') }}"
-            class="sb-item {{ request()->routeIs('pos.sales.page') ? 'active' : '' }}" data-tip="Sales History">
+            class="sb-item {{ request()->routeIs('pos.sales.page') ? 'active' : '' }}" data-tip="{{ __('messages.sales_history') }}">
             <i class="fas fa-receipt"></i>
-            <span class="sb-item-text">Sales History</span>
+            <span class="sb-item-text">{{ __('messages.sales_history') }}</span>
         </a>
         <a href="{{ route('pos.reports') }}" class="sb-item {{ request()->routeIs('pos.reports') ? 'active' : '' }}"
-            data-tip="Reports">
+            data-tip="{{ __('messages.reports') }}">
             <i class="fas fa-chart-bar"></i>
-            <span class="sb-item-text">Reports</span>
+            <span class="sb-item-text">{{ __('messages.reports') }}</span>
         </a>
 
         {{-- Operations section --}}
         <div class="sb-section-label" style="margin-top:.5rem">
-            <span class="sb-label-text">Operations</span>
+            <span class="sb-label-text">{{ __('messages.operations') }}</span>
             </div>
         <a href="{{ route('shift.open.form') }}" class="sb-item {{ request()->routeIs('shift.*') ? 'active' : '' }}"
-            data-tip="Shifts">
+            data-tip="{{ __('messages.shifts') }}">
             <i class="fas fa-clock"></i>
-            <span class="sb-item-text">Shifts</span>
+            <span class="sb-item-text">{{ __('messages.shifts') }}</span>
         </a>
 
         {{-- System section --}}
         <div class="sb-section-label" style="margin-top:.5rem">
-            <span class="sb-label-text">Operations</span>
+            <span class="sb-label-text">{{ __('messages.system') }}</span>
             </div>
         <a href="{{ route('pos.users.page') }}"
-            class="sb-item {{ request()->routeIs('pos.users.*') ? 'active' : '' }}" data-tip="Users">
+            class="sb-item {{ request()->routeIs('pos.users.*') ? 'active' : '' }}" data-tip="{{ __('messages.user_management') }}">
             <i class="fas fa-users-gear"></i>
-            <span class="sb-item-text">User Management</span>
+            <span class="sb-item-text">{{ __('messages.user_management') }}</span>
         </a>
         <a href="{{ route('pos.backup') }}" class="sb-item {{ request()->routeIs('pos.backup*') ? 'active' : '' }}"
-            data-tip="Backup & Sync">
+            data-tip="{{ __('messages.backup_sync') }}">
             <i class="fas fa-cloud-arrow-up"></i>
-            <span class="sb-item-text">Backup & Sync</span>
+            <span class="sb-item-text">{{ __('messages.backup_sync') }}</span>
         </a>
-        <a href="{{ route('pos.settings') }}" class="sb-item" data-tip="Settings">
+        <a href="{{ route('pos.settings') }}" class="sb-item {{ request()->routeIs('pos.settings*') ? 'active' : '' }}" data-tip="{{ __('messages.settings') }}">
             <i class="fas fa-gear"></i>
-            <span class="sb-item-text">Settings</span>
+            <span class="sb-item-text">{{ __('messages.settings') }}</span>
         </a>
 
     </nav>
@@ -107,7 +107,7 @@
                     class="flex items-center justify-center gap-2 p-2 rounded-lg border border-gray-200 text-sm font-medium text-gray-600 hover:bg-red-50 hover:border-red-200 hover:text-red-600 transition-all"
                     style="text-decoration:none">
                     <i class="fas fa-right-from-bracket text-xs"></i>
-                    <span class="sb-foot-text">Logout</span>
+                    <span class="sb-foot-text">{{ __('messages.logout') }}</span>
                 </a>
             </button>
         </form>
