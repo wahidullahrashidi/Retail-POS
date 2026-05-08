@@ -14,21 +14,17 @@ use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\BackupController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\SettingsController;
+use App\Http\Controllers\LanguageController;
+
 
 
 Route::get('/', [AuthController::class, 'showLogin'])->name('login');
 Route::post('/login', [AuthController::class, 'login'])->name('login.post');
 Route::post('/login/pin', [AuthController::class, 'pinLogin'])->name('login.pin');
 
-Route::get('/lang/{locale}', function ($locale) {
-    if (! in_array($locale, ['en', 'ps', 'dr'])) {
-        abort(400);
-    }
 
-    session(['locale' => $locale]);
-
-    return redirect()->back();
-});
+Route::get('/language/{lang}', [LanguageController::class, 'switch'])
+    ->name('language.switch');
 
 Route::middleware('auth')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');

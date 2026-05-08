@@ -170,7 +170,7 @@
                     </div>
 
                     {{-- Add this button below the customer search input --}}
-                    <button type="button" @click="showRegisterModal=true; registerError=''"
+                    <button type="button" class="pos-check-new-customer-btn" @click="showRegisterModal=true; registerError=''"
                         style="margin-top:8px;width:100%;padding:8px;background:var(--surface-2);border:1px dashed var(--border-2);border-radius:var(--r-sm);font-family:var(--body);font-size:12px;font-weight:500;color:var(--ink-2);cursor:pointer;transition:all .15s"
                         @mouseenter="$event.target.style.borderColor='var(--blue)';$event.target.style.color='var(--blue)'"
                         @mouseleave="$event.target.style.borderColor='var(--border-2)';$event.target.style.color='var(--ink-2)'">
@@ -212,6 +212,8 @@
                     </div>
                 </div>
 
+                {{-- {{ __('messages.store') }} --}}
+                {{ app()->getLocale() }}
                 {{-- Payment Method --}}
                 <div class="pay-section">
                     <div class="pay-section-title"><i class="fas fa-wallet"></i> {{ __('messages.payment_method') }}</div>
@@ -304,7 +306,7 @@
                         <div class="option-item">
                             <span class="option-label"><i class="fas fa-print"></i> {{ __('messages.print_receipt') }}</span>
                             <label class="toggle">
-                                <input type="checkbox" x-model="shouldPrintReceipt">
+                                <input type="checkbox" x-model="shouldPrintReceipt" class="in">
                                 <span class="toggle-slider"></span>
                             </label>
                         </div>

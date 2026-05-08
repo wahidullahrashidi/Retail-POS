@@ -31,10 +31,10 @@
                 <i class="fas fa-chevron-left"></i>
             </button>
         </div>
-        {{-- <a href="{{ route('pos.dashboard') }}" class="sb-item {{ request()->routeIs('pos.dashboard') ? 'active' : '' }}"
+        <a href="{{ route('pos.dashboard') }}" class="sb-item {{ request()->routeIs('pos.dashboard') ? 'active' : '' }}"
             data-tip="{{ __('messages.dashboard') }}">
             <i class="fas fa-gauge-high"></i>
-            <span class="sb-item-text">{{ __('messages.dashboard') }}</span> --}}
+            <span class="sb-item-text">{{ __('messages.dashboard') }}</span>
         </a>
         <a href="{{ route('pos.poscheck') }}" class="sb-item {{ request()->routeIs('pos.poscheck') ? 'active' : '' }}"
             data-tip="{{ __('messages.pos_checkout') }}">

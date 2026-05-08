@@ -45,8 +45,10 @@
             }
         }
     </script>
-    @vite(['resources/css/app.css'])
+    @vite(['resources/css/layout/app-shell.css'])
+    @vite(['resources/css/layout/theme.css'])
 
+    @stack('styles')
     <style>
         /* ════════════════════════════════════════
            SHELL VARIABLES
@@ -996,8 +998,9 @@
     .heatmap-grid      { grid-template-columns: repeat(12, 1fr) !important; }
     .heatmap-labels    { grid-template-columns: repeat(12, 1fr) !important; }
 }
+
     </style>
-    @stack('styles')
+    
     <style>
         /* Dark mode CSS variable overrides */
         .dark {
@@ -1070,13 +1073,16 @@
                 lang: 'en',
 
                 init() {
-                    // Restore preferences
-                    this.sidebarCollapsed = localStorage.getItem('sb-collapsed') === '1';
-                    this.darkMode = localStorage.getItem('dark-mode') === '1';
-                    this.lang = localStorage.getItem('app-lang') || 'en';
-                    this.applyDark();
-                    this.applyLang();
-                    this.startClock();
+                // Read current locale SET BY LARAVEL (server-side)
+                this.lang = '{{ app()->getLocale() }}';
+                localStorage.setItem('app-lang', this.lang);
+
+                this.sidebarCollapsed = localStorage.getItem('sb-collapsed') === '1';
+                this.darkMode         = localStorage.getItem('dark-mode')    === '1';
+
+                this.applyDark();
+                this.applyLang();
+                this.startClock();
                 },
 
                 toggleSidebar() {
@@ -1101,9 +1107,10 @@
                 },
 
                 setLang(l) {
-                    this.lang = l;
-                    localStorage.setItem('app-lang', l);
-                    this.applyLang();
+                this.lang = l;
+                localStorage.setItem('app-lang', l);
+                // Redirect to a route that sets the Laravel locale server-side
+                window.location.href = '/language/' + l;
                 },
 
                 applyLang() {
@@ -1114,15 +1121,15 @@
 
                 currentLangLabel() {
                     return {
-                        en: '🇬🇧 EN',
-                        ps: '🇦🇫 پښتو',
-                        dr: '🇦🇫 دری'
+                        en: 'English',
+                        ps: 'پښتو',
+                        dr: 'دری'
                     } [this.lang] || 'EN';
                 },
 
                 startClock() {
                     const tick = () => {
-                        const t = new Date().toLocaleTimeString('en-GB');
+                        const t = new Date().toLocaleTimeString('en-US');
                         const el = document.getElementById('footerClock');
                         if (el) el.textContent = t;
                     };

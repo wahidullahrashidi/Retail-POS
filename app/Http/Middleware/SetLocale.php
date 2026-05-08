@@ -1,24 +1,25 @@
 <?php
-
 namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
-use Symfony\Component\HttpFoundation\Response;
 use Illuminate\Support\Facades\App;
 
 class SetLocale
 {
-    /**
-     * Handle an incoming request.
-     *
-     * @param  Closure(Request): (Response)  $next
-     */
-    public function handle(Request $request, Closure $next): Response
+    public function handle(Request $request, Closure $next)
     {
-        if (session()->has('locale')) {
-            App::setLocale(session('locale'));
-        }
+        $locale = session('app_locale', 'en');
+
+        // Map your locale keys to Laravel locale folders
+        $map = [
+            'en' => 'en',
+            'ps' => 'ps',
+            'dr' => 'dr',
+        ];
+
+        App::setLocale($map[$locale] ?? 'en');
+
         return $next($request);
     }
 }

@@ -12,8 +12,8 @@
     ══════════════════════════════ --}}
         <div class="topbar">
             <div class="topbar-left">
-                <h1>{{ __('messages.afghan_pos') }} <em style="font-style:italic;color:var(--gold);">{{ __('messages.dashboard') }}</em></h1>
-                <p>{{ __('messages.welcome_back') }}</p>
+                <h1 class="afg-pos">{{ __('messages.afghan_pos') }} <em style="font-style:italic;color:var(--gold);">{{ __('messages.dashboard') }}</em></h1>
+                <p class="afg-pos">{{ __('messages.welcome_back') }}</p>
             </div>
             <div class="topbar-right">
                 {{-- <div class="live-clock" id="liveClock">--:--:--</div> --}}
@@ -50,7 +50,7 @@
                                             ? 100
                                             : 0);
                             @endphp
-                            <span class="stat-badge {{ $salesDir }}">
+                            <span class="stat-badge {{ $salesDir }} cd">
                                 <i
                                     class="fas fa-arrow-{{ $salesDir === 'up' ? 'up' : ($salesDir === 'down' ? 'down' : 'minus') }}"></i>
                                 {{ $salesPct }}%
@@ -75,7 +75,7 @@
                                 $loanPct =
                                     $loanYesterday > 0 ? round(abs($loanPercentage), 1) : ($loanToday > 0 ? 100 : 0);
                             @endphp
-                            <span class="stat-badge {{ $loanDir }}">
+                            <span class="stat-badge {{ $loanDir }} cd">
                                 <i
                                     class="fas fa-arrow-{{ $loanDir === 'up' ? 'up' : ($loanDir === 'down' ? 'down' : 'minus') }}"></i>
                                 {{ $loanPct }}%
@@ -99,14 +99,14 @@
                                             : 'zero');
                                 $profitPct = round(abs($netProfitPercentage), 1);
                             @endphp
-                            <span class="stat-badge {{ $profitDir }}">
+                            <span class="stat-badge {{ $profitDir }} cd">
                                 <i
                                     class="fas fa-arrow-{{ $profitDir === 'up' ? 'up' : ($profitDir === 'down' ? 'down' : 'minus') }}"></i>
                                 {{ $profitPct }}%
                             </span>
                         </div>
                         <div class="stat-value"><span>Af</span>{{ number_format($netProfitToday) }}</div>
-                        <div class="stat-sub">{{ __('messages.sales') }} − {{ __('messages.cost_of_goods') }}</div>
+                        <div class="stat-sub">{{ __('messages.sales') }} - {{ __('messages.cost_of_goods') }}</div>
                         <i class="fas fa-chart-line stat-icon"></i>
                     </div>
 
@@ -128,7 +128,7 @@
                                             ? 100
                                             : 0);
                             @endphp
-                            <span class="stat-badge {{ $custDir }}">
+                            <span class="stat-badge {{ $custDir }} cd">
                                 <i
                                     class="fas fa-arrow-{{ $custDir === 'up' ? 'up' : ($custDir === 'down' ? 'down' : 'minus') }}"></i>
                                 {{ $custPct }}%
@@ -384,14 +384,14 @@
                     </div>
                     <div style="overflow-x:auto">
                         <table class="txn-table">
-                            <thead>
-                                <tr>
-                                    <th>Ref</th>
-                                    <th>Customer</th>
-                                    <th>Time</th>
-                                    <th>Method</th>
-                                    <th class="text-right">Amount</th>
-                                    <th></th>
+                            <thead >
+                                <tr class="tb-head">
+                                    <th class="r">Ref</th>
+                                    <th class="r">Customer</th>
+                                    <th class="r">Time</th>
+                                    <th class="r">Method</th>
+                                    <th class="r" class="text-right">Amount</th>
+                                    <th class="r"></th>
                                 </tr>
                             </thead>
                             <tbody>

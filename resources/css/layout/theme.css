@@ -181,6 +181,7 @@
     border-color: #3b82f6 !important; 
 }
 
+
 /* Ghost buttons */
 .dark .btn-ghost { background: #1c2430 !important; border-color: rgba(255,255,255,.1) !important; color: #9099b0 !important; }
 .dark .btn-ghost:hover { background: rgba(255,255,255,.08) !important; color: #e8eaf0 !important; }
@@ -261,3 +262,46 @@
 /* Scrollbars */
 .dark *::-webkit-scrollbar-track { background: #161b22 !important; }
 .dark *::-webkit-scrollbar-thumb { background: rgba(255,255,255,.1) !important; }
+
+/* pos-checkout view buttons  */
+.dark .shortcut-hint, 
+ .dark .amount-input,
+  .dark .qa-btn, 
+ .dark .change-box, 
+ .dark .pay-method-btn,
+ .dark .customer-input, 
+ .dark .pos-check-new-customer-btn, 
+ .dark .search-input, 
+ .dark .co-back-btn
+ { background: #1c2430 !important; border-color: rgba(255,255,255,.1) !important; color: #9099b0 !important; }
+
+ .dark .shortcut-hint:hover,
+  .amount-input:hover, 
+  .qa-btn:hover, 
+  .change-box:hover, 
+  .pay-method-btn:hover,
+ .dark .pay-section, 
+ .dark .pos-check-new-customer-btn:hover,  
+ .dark .search-input:hover, 
+ .dark .co-back-btn:hover
+ { background: rgba(255,255,255,.08) !important; color: #e8eaf0 !important; }
+
+  .dark .disc-row * { background: #1c2430 !important; border-color: rgba(255,255,255,.1) !important; color: #9099b0 !important; }
+ .dark .disc-row *{ background: #1c2430 !important; border-color: rgba(255,255,255,.1) !important; color: #9099b0 !important; }
+
+
+ .dark, .options-row * { background: #1c2430 !important; border-color: rgba(255,255,255,.1) !important; color: #9099b0 !important; }
+ .dark, .options-row * :hover { background: rgba(255,255,255,.08) !important; color: #e8eaf0 !important; } 
+
+
+ /* Dashboard view */
+
+.dark .topbar, .dark .cd { background: #1c2430 !important; border-color: rgba(255,255,255,.1) !important; color: #9099b0 !important; }
+.dark .topbar:hover, .dark .cd:hover { background: rgba(255,255,255,.08) !important; color: #e8eaf0 !important; }
+
+.dark .afg-pos, .dark .stat-value, .dark .card * { color: #e8eaf0;}
+.dark .shift-stat:hover { background: rgba(255,255,255,.08) !important;}
+
+.dark .card-head-badge, .dark .r, .dark .stock-item , 
+.dark .shift-stat
+{ background: #1c2430 !important;}

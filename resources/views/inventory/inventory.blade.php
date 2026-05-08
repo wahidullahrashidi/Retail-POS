@@ -2,6 +2,10 @@
 
 @push('styles')
     @vite(['resources/css/pages/inventory.css'])
+    {{-- @vite(['resources/css/app.css']) --}}
+
+    {{-- @include(asset('pages/inventory.css')) --}}
+
 @endpush
 
 @section('content')
