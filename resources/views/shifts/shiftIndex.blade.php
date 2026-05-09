@@ -18,7 +18,7 @@
     --shmd:0 4px 18px rgba(0,0,0,.08),0 2px 6px rgba(0,0,0,.04);
     --shlg:0 20px 56px rgba(0,0,0,.12),0 6px 16px rgba(0,0,0,.06);
 }
-.sh*{box-sizing:border-box}
+.sh *{box-sizing:border-box}
 .sh{font-family:var(--body);background:var(--bg);min-height:100vh;color:var(--ink)}
 [x-cloak]{display:none!important}
 

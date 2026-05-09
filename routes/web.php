@@ -26,6 +26,8 @@ Route::post('/login/pin', [AuthController::class, 'pinLogin'])->name('login.pin'
 Route::get('/language/{lang}', [LanguageController::class, 'switch'])
     ->name('language.switch');
 
+
+
 Route::middleware('auth')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
@@ -34,7 +36,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/open', [ShiftController::class, 'open'])->name('open');
         Route::get('/close', [ShiftController::class, 'closeForm'])->name('close.form');
         Route::post('/close', [ShiftController::class, 'close'])->name('close');
-        Route::get('/report/{id}', [ShiftController::class, 'report'])->name('report');
+        Route::get('/report/{shift}', [ShiftController::class, 'report'])->name('report');
     });
 
     Route::middleware('active.shift')->prefix('pos')->name('pos.')->group(function () {
@@ -43,6 +45,21 @@ Route::middleware('auth')->group(function () {
         Route::get('/products/search',    [DashboardController::class, 'searchProducts'])->name('products.search');
         Route::get('/products/trending',  [DashboardController::class, 'trendingProducts'])->name('products.trending');
         Route::post('/checkout',          [DashboardController::class, 'checkout'])->name('checkout');
+
+        Route::get('/shifts/page', [ShiftController::class, 'page'])->name('shifts.page');
+        Route::get('/shifts', [ShiftController::class, 'index'])->name('shifts.index');
+        Route::get('/shifts/{shift}/detail', [ShiftController::class, 'detail'])->name('shifts.detail');
+        Route::get('/shifts/{shift}/report', [ShiftController::class, 'report'])->name('shifts.report');
+
+        // Redirect to open shift form if trying to close when no active shift
+        Route::get('/shift/close', function () {
+            $shift = \App\Models\Shift::where('user_id', auth()->id())
+                ->where('is_closed', false)->first();
+            if (!$shift) return redirect()->route('shift.open.form')
+                ->with('error', 'No active shift found.');
+            return app(\App\Http\Controllers\ShiftController::class)->closeForm();
+        })->name('shift.close.form');
+
 
 
         // poscontroller routes: 

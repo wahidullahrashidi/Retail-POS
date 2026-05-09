@@ -3,9 +3,9 @@
     <header id="app-header">
         <div class="header-left">
             {{-- Hamburger (mobile) --}}
-            {{-- <button class="hdr-hamburger" @click="mobileOpen = !mobileOpen">
+            <button class="hdr-hamburger" type="button" @click="mobileOpen = !mobileOpen" title="{{ __('messages.toggle_sidebar') }}">
                 <i class="fas fa-bars"></i>
-            </button> --}}
+            </button>
 
             {{-- Date --}}
             <div class="text-sm text-gray-500">

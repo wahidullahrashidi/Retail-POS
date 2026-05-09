@@ -20,4 +20,12 @@ class Shift extends Model
     {
         return $this->hasMany(Sale::class);
     }
+    // Shift.php
+
+
+
+public function saleItems()
+{
+    return $this->hasManyThrough(SaleItem::class, Sale::class);
+}
 }

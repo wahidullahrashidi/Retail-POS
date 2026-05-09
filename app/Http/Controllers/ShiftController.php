@@ -161,7 +161,7 @@ class ShiftController extends Controller
 
         $cashiers = User::whereHas('shifts')->orderBy('name')->get(['id','name']);
 
-        return view('shifts.index', compact('stats', 'cashiers'));
+        return view('shifts.shiftIndex', compact('stats', 'cashiers'));
     }
 
     // ══════════════════════════════════════════
@@ -342,7 +342,7 @@ class ShiftController extends Controller
             ? $this->formatDuration($shift->opened_at, $shift->closed_at)
             : 'Still Active';
 
-        return view('shifts.report', compact(
+        return view('shifts.shiftReport', compact(
             'shift','cashSales','loanSales','totalSales','discounts',
             'returns','txCount','avgTicket','itemsSold','topItems','duration'
         ));

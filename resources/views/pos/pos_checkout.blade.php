@@ -212,8 +212,6 @@
                     </div>
                 </div>
 
-                {{-- {{ __('messages.store') }} --}}
-                {{ app()->getLocale() }}
                 {{-- Payment Method --}}
                 <div class="pay-section">
                     <div class="pay-section-title"><i class="fas fa-wallet"></i> {{ __('messages.payment_method') }}</div>
@@ -909,7 +907,7 @@
 
                 openPrintPreview() {
                     if (!this.showReceipt) return;
-                    window.print();
+                    window.printSection('.receipt-card');
                 },
 
                 newSale() {

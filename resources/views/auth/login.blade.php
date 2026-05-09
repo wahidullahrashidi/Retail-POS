@@ -1,10 +1,14 @@
+@php
+    $currentLocale = app()->getLocale();
+    $isRtl = in_array($currentLocale, ['ps', 'dr'], true);
+@endphp
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{ $currentLocale }}" dir="{{ $isRtl ? 'rtl' : 'ltr' }}">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login — Afghan POS</title>
+    <title>{{ __('messages.login_title') }}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link
         href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,700;1,400&display=swap"
@@ -655,9 +659,9 @@
         <div class="right-panel">
 
             <div class="form-heading">
-                <div class="welcome">Welcome back</div>
-                <h1>Sign in to<br>your account</h1>
-                <p>Choose how you'd like to log in below.</p>
+                <div class="welcome">{{ __('messages.welcome_back_short') }}</div>
+                <h1>{{ __('messages.sign_in_to_account') }}</h1>
+                <p>{{ __('messages.choose_login_method') }}</p>
             </div>
 
             {{-- Tabs --}}
@@ -680,27 +684,27 @@
                 <form action="{{ route('login.post') }}" method="POST">
                     @csrf
                     <div class="field">
-                        <label>Username</label>
+                        <label>{{ __('messages.username') }}</label>
                         <div class="input-wrap">
                             <span class="input-icon">👤</span>
                             <input type="text" name="username" required autofocus
-                                placeholder="Enter your username" value="{{ old('username') }}">
+                                placeholder="{{ __('messages.enter_username') }}" value="{{ old('username') }}">
                         </div>
                     </div>
                     <div class="field">
-                        <label>Password</label>
+                        <label>{{ __('messages.password') }}</label>
                         <div class="input-wrap">
                             <span class="input-icon">🔒</span>
                             <input type="password" name="password" id="pwField" required
-                                placeholder="Enter your password">
+                                placeholder="{{ __('messages.enter_password') }}">
                             <button type="button" class="eye-btn" id="eyeBtn" onclick="togglePw()"
                                 aria-label="Toggle password">👁</button>
                         </div>
                     </div>
                     <div class="forgot-row">
-                        <a href="#" class="forgot-link">Forgot password?</a>
+                        <a href="#" class="forgot-link">{{ __('messages.forgot_password') }}</a>
                     </div>
-                    <button type="submit" class="btn btn-blue">Sign In &nbsp;→</button>
+                    <button type="submit" class="btn btn-blue">{{ __('messages.sign_in') }}</button>
                 </form>
             </div>
 
@@ -709,7 +713,7 @@
                 <form action="{{ route('login.pin') }}" method="POST" onsubmit="combinePin()">
                     @csrf
                     <input type="hidden" name="pin_code" id="fullPin">
-                    <div class="pin-label">Enter your 4-digit cashier PIN</div>
+                    <div class="pin-label">{{ __('messages.enter_pin') }}</div>
                     <div class="pin-boxes">
                         <input class="pin-box" type="password" name="pin1" id="pin1" maxlength="1"
                             inputmode="numeric" autocomplete="off" onkeyup="pinNext(this,'pin2')"
@@ -724,20 +728,20 @@
                             inputmode="numeric" autocomplete="off" onkeydown="pinBack(event,this,'pin3')"
                             oninput="markFilled(this)">
                     </div>
-                    <button type="submit" class="btn btn-purple">Login with PIN &nbsp;→</button>
+                    <button type="submit" class="btn btn-purple">{{ __('messages.login_with_pin') }}</button>
                 </form>
             </div>
 
             {{-- Language --}}
             <div class="lang-row">
                 <select class="lang-select" onchange="changeLang(this.value)">
-                    <option value="en">🇬🇧 English</option>
-                    <option value="ps">🇦🇫 پښتو</option>
-                    <option value="dr">🇦🇫 دری</option>
+                    <option value="en" @selected($currentLocale === 'en')>{{ __('messages.english') }}</option>
+                    <option value="ps" @selected($currentLocale === 'ps')>{{ __('messages.pashto') }}</option>
+                    <option value="dr" @selected($currentLocale === 'dr')>{{ __('messages.dari') }}</option>
                 </select>
             </div>
 
-            <div class="right-footer">Afghan POS &copy; {{ date('Y') }} — All rights reserved</div>
+            <div class="right-footer">{{ __('messages.afghan_pos') }} &copy; {{ date('Y') }} - {{ __('messages.all_rights_reserved') }}</div>
 
         </div>{{-- /right-panel --}}
 
@@ -784,8 +788,7 @@
         }
 
         function changeLang(lang) {
-            console.log('Language changed:', lang);
-            // Hook into your i18n logic here
+            window.location.href = '{{ url('/language') }}/' + lang;
         }
     </script>
 

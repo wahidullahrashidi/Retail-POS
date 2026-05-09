@@ -87,7 +87,8 @@ class ProductVariant extends Model
 
     public function scopeLowStack($query)
     {
-        return $query->where('stock_quantity', '<', 5)
-        ->select('sku', 'stock_quantity');
+        return $query->join('products', 'products.id', '=', 'product_variants.product_id')
+            ->whereRaw('product_variants.stock_quantity <= COALESCE(products.low_stock_threshold, 10)')
+            ->where('product_variants.is_active', true);
     }
 }

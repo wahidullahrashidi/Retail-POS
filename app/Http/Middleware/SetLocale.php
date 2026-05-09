@@ -4,21 +4,26 @@ namespace App\Http\Middleware;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\App;
+use Illuminate\Support\Facades\Cookie;
+use Illuminate\Support\Facades\Session;
 
 class SetLocale
 {
+    private const SUPPORTED = ['en', 'ps', 'dr'];
+
     public function handle(Request $request, Closure $next)
     {
-        $locale = session('app_locale', 'en');
+        $locale = $request->session()->get('app_locale')
+            ?? $request->cookie('app_locale')
+            ?? config('app.locale', 'en');
 
-        // Map your locale keys to Laravel locale folders
-        $map = [
-            'en' => 'en',
-            'ps' => 'ps',
-            'dr' => 'dr',
-        ];
+        if (! in_array($locale, self::SUPPORTED, true)) {
+            $locale = config('app.fallback_locale', 'en');
+        }
 
-        App::setLocale($map[$locale] ?? 'en');
+        App::setLocale($locale);
+        Session::put('app_locale', $locale);
+        Cookie::queue('app_locale', $locale, 60 * 24 * 365);
 
         return $next($request);
     }

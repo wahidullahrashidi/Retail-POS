@@ -16,7 +16,7 @@
     --sh:0 1px 3px rgba(0,0,0,.05),0 1px 2px rgba(0,0,0,.03);
     --shmd:0 4px 18px rgba(0,0,0,.08),0 2px 6px rgba(0,0,0,.04);
 }
-.sr*{box-sizing:border-box}
+.sr *{box-sizing:border-box}
 .sr{font-family:var(--body);background:var(--bg);min-height:100vh;color:var(--ink)}
 
 /* topbar */

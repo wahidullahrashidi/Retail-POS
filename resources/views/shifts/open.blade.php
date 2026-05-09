@@ -1,41 +1,346 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Open Shift - Afghan POS</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-gradient-to-br from-blue-500 to-purple-600 min-h-screen flex items-center justify-center">
+@extends('layouts.app')
 
-    <div class="bg-white rounded-xl shadow-2xl w-full max-w-md p-8">
-        <div class="text-center mb-8">
-            <div class="text-5xl mb-3">🌅</div>
-            <h1 class="text-2xl font-bold text-gray-800">Open Shift</h1>
-            <p class="text-gray-500">Cashier: {{ auth()->user()->name }}</p>
-            <p class="text-sm text-gray-400">{{ now()->format('Y-m-d H:i') }}</p>
+@push('styles')
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@300;400;500;600;700&family=Nunito+Sans:wght@300;400;500;600&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+    --navy:    #0f1c3a;
+    --navy2:   #162040;
+    --blue:    #3b82f6;
+    --blue2:   #2563eb;
+    --bdim:    rgba(59,130,246,.12);
+    --gold:    #f59e0b;
+    --gdim:    rgba(245,158,11,.12);
+    --green:   #10b981;
+    --grdim:   rgba(16,185,129,.12);
+    --red:     #ef4444;
+    --surface: #ffffff;
+    --s2:      #f8faff;
+    --border:  #e5e9f5;
+    --ink:     #111827;
+    --ink2:    #374151;
+    --ink3:    #9ca3af;
+    --mono:    'Roboto Mono', monospace;
+    --body:    'Nunito Sans', sans-serif;
+    --display: 'Unbounded', sans-serif;
+}
+
+.shift-open-page {
+    min-height: 100vh;
+    background: var(--navy);
+    display: flex; align-items: center; justify-content: center;
+    padding: 2rem;
+    position: relative;
+    overflow: hidden;
+    font-family: var(--body);
+}
+
+/* Animated background grid */
+.shift-open-page::before {
+    content: '';
+    position: absolute; inset: 0;
+    background-image:
+        linear-gradient(rgba(59,130,246,.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(59,130,246,.04) 1px, transparent 1px);
+    background-size: 48px 48px;
+    animation: gridMove 20s linear infinite;
+}
+@keyframes gridMove {
+    0%   { background-position: 0 0; }
+    100% { background-position: 48px 48px; }
+}
+
+/* Glow orbs */
+.shift-open-page::after {
+    content: '';
+    position: absolute;
+    width: 600px; height: 600px;
+    background: radial-gradient(circle, rgba(59,130,246,.12) 0%, transparent 70%);
+    top: -200px; left: -200px;
+    pointer-events: none;
+}
+
+.open-card {
+    background: rgba(255,255,255,.03);
+    border: 1px solid rgba(255,255,255,.1);
+    border-radius: 24px;
+    padding: 2.5rem;
+    width: 100%; max-width: 480px;
+    backdrop-filter: blur(20px);
+    position: relative; z-index: 1;
+    box-shadow: 0 32px 80px rgba(0,0,0,.5), 0 0 0 1px rgba(255,255,255,.05);
+    animation: cardReveal .6s cubic-bezier(.2,.8,.36,1) both;
+}
+@keyframes cardReveal {
+    from { opacity: 0; transform: translateY(24px) scale(.97); }
+    to   { opacity: 1; transform: none; }
+}
+
+/* Logo mark */
+.oc-logo {
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 2.5rem;
+}
+.oc-logo-mark {
+    width: 44px; height: 44px;
+    background: var(--blue);
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 8px 24px rgba(59,130,246,.4);
+}
+.oc-logo-text {
+    font-family: var(--display);
+    font-size: 16px; font-weight: 600;
+    color: rgba(255,255,255,.9);
+    letter-spacing: -.3px;
+    line-height: 1.2;
+}
+.oc-logo-sub {
+    font-size: 10px; color: rgba(255,255,255,.4);
+    font-weight: 300; letter-spacing: .1em; text-transform: uppercase;
+}
+
+/* Greeting */
+.oc-greeting {
+    margin-bottom: 1.75rem;
+}
+.oc-greeting h1 {
+    font-family: var(--display);
+    font-size: 26px; font-weight: 600;
+    color: #fff; line-height: 1.2;
+    letter-spacing: -.5px;
+    margin-bottom: 6px;
+}
+.oc-greeting p {
+    font-size: 13px; color: rgba(255,255,255,.45);
+    line-height: 1.6;
+}
+
+/* Live clock display */
+.oc-clock {
+    background: rgba(0,0,0,.3);
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 12px;
+    padding: 1.1rem 1.25rem;
+    margin-bottom: 1.75rem;
+    display: flex; align-items: center; justify-content: space-between;
+}
+.oc-clock-time {
+    font-family: var(--mono);
+    font-size: 28px; font-weight: 500;
+    color: #fff; letter-spacing: -.5px;
+    line-height: 1;
+}
+.oc-clock-date { text-align: right; }
+.oc-clock-gregorian { font-size: 12px; color: rgba(255,255,255,.6); font-weight: 500; }
+.oc-clock-hijri { font-size: 11px; color: rgba(255,255,255,.3); margin-top: 3px; }
+
+/* Cash input */
+.oc-field { margin-bottom: 1.25rem; }
+.oc-label {
+    display: block;
+    font-size: 11px; font-weight: 600;
+    color: rgba(255,255,255,.5);
+    letter-spacing: .08em; text-transform: uppercase;
+    margin-bottom: 8px;
+}
+.oc-input-wrap { position: relative; }
+.oc-prefix {
+    position: absolute; left: 14px; top: 50%;
+    transform: translateY(-50%);
+    font-family: var(--mono); font-size: 15px; font-weight: 500;
+    color: rgba(255,255,255,.4);
+    pointer-events: none;
+}
+.oc-input {
+    width: 100%;
+    padding: 14px 14px 14px 50px;
+    background: rgba(255,255,255,.06);
+    border: 1.5px solid rgba(255,255,255,.1);
+    border-radius: 10px;
+    font-family: var(--mono);
+    font-size: 20px; font-weight: 500;
+    color: #fff; outline: none;
+    transition: border .15s, box-shadow .15s, background .15s;
+}
+.oc-input:focus {
+    border-color: var(--blue);
+    background: rgba(59,130,246,.08);
+    box-shadow: 0 0 0 3px rgba(59,130,246,.15);
+}
+.oc-input::placeholder { color: rgba(255,255,255,.2); }
+
+/* Quick amounts */
+.oc-quick { display: flex; gap: 8px; margin-top: 8px; }
+.oc-quick-btn {
+    flex: 1; padding: 7px 6px;
+    background: rgba(255,255,255,.05);
+    border: 1px solid rgba(255,255,255,.1);
+    border-radius: 7px;
+    font-family: var(--mono); font-size: 12px;
+    color: rgba(255,255,255,.5);
+    cursor: pointer; transition: all .15s;
+}
+.oc-quick-btn:hover {
+    background: rgba(59,130,246,.15);
+    border-color: var(--blue);
+    color: #93c5fd;
+}
+
+/* User info strip */
+.oc-user-strip {
+    display: flex; align-items: center; gap: 10px;
+    padding: .85rem 1rem;
+    background: rgba(255,255,255,.04);
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 10px;
+    margin-bottom: 1.25rem;
+}
+.oc-user-av {
+    width: 32px; height: 32px; border-radius: 8px;
+    background: var(--blue);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700; color: #fff;
+    flex-shrink: 0;
+}
+.oc-user-name { font-size: 13px; font-weight: 600; color: rgba(255,255,255,.8); }
+.oc-user-role { font-size: 11px; color: rgba(255,255,255,.35); margin-top: 1px; }
+.oc-user-time { margin-left: auto; font-family: var(--mono); font-size: 11px; color: rgba(255,255,255,.3); }
+
+/* Submit button */
+.oc-submit {
+    width: 100%; padding: 14px;
+    background: var(--blue);
+    border: none; border-radius: 10px;
+    font-family: var(--display);
+    font-size: 14px; font-weight: 600;
+    color: #fff; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    box-shadow: 0 4px 20px rgba(59,130,246,.4);
+    transition: all .2s;
+    letter-spacing: .02em;
+}
+.oc-submit:hover { background: var(--blue2); transform: translateY(-1px); box-shadow: 0 8px 28px rgba(59,130,246,.5); }
+.oc-submit:active { transform: scale(.98); }
+
+/* Error */
+.oc-error {
+    padding: 10px 14px;
+    background: rgba(239,68,68,.12);
+    border: 1px solid rgba(239,68,68,.25);
+    border-radius: 8px;
+    font-size: 12px; color: #fca5a5;
+    margin-bottom: 1rem;
+    display: flex; align-items: center; gap: 8px;
+}
+</style>
+@endpush
+
+@section('content')
+<div class="shift-open-page">
+    <div class="open-card">
+
+        {{-- Logo --}}
+        <div class="oc-logo">
+            <div class="oc-logo-mark">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                    <path d="M12 2L14.5 8.5L21 10L14.5 13.5L12 20L9.5 13.5L3 10L9.5 8.5Z" fill="white"/>
+                </svg>
+            </div>
+            <div>
+                <div class="oc-logo-text">Afghan POS</div>
+                <div class="oc-logo-sub">Retail Management</div>
+            </div>
         </div>
 
-        <form action="{{ route('shift.open') }}" method="POST">
+        {{-- Greeting --}}
+        <div class="oc-greeting">
+            <h1>Open Your Shift</h1>
+            <p>Enter your starting cash to begin processing sales for today.</p>
+        </div>
+
+        {{-- Live clock --}}
+        <div class="oc-clock">
+            <div class="oc-clock-time" id="openShiftClock">--:--:--</div>
+            <div class="oc-clock-date">
+                <div class="oc-clock-gregorian">{{ \Carbon\Carbon::now()->format('l, F d') }}</div>
+                <div class="oc-clock-hijri">{{ $hijriDate ?? '' }}</div>
+            </div>
+        </div>
+
+        {{-- User strip --}}
+        @php
+            $user  = Auth::user();
+            $parts = array_values(array_filter(explode(' ', trim($user->name))));
+            $initials = count($parts) === 1
+                ? strtoupper(substr($parts[0], 0, 2))
+                : strtoupper(collect($parts)->map(fn($p) => substr($p,0,1))->join(''));
+        @endphp
+        <div class="oc-user-strip">
+            <div class="oc-user-av">{{ $initials }}</div>
+            <div>
+                <div class="oc-user-name">{{ $user->name }}</div>
+                <div class="oc-user-role">{{ $user->role?->display_name ?? 'Cashier' }}</div>
+            </div>
+            <div class="oc-user-time">{{ \Carbon\Carbon::now()->format('H:i') }}</div>
+        </div>
+
+        {{-- Error --}}
+        @if(session('error'))
+        <div class="oc-error">
+            <i class="fas fa-circle-exclamation"></i>
+            {{ session('error') }}
+        </div>
+        @endif
+
+        {{-- Form --}}
+        <form method="POST" action="{{ route('shift.open') }}">
             @csrf
-            
-            <div class="mb-6">
-                <label class="block text-sm font-medium text-gray-700 mb-2">Starting Cash Amount</label>
-                <div class="relative">
-                    <input type="number" name="starting_cash" required autofocus min="0" step="0.01"
-                        class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none text-lg text-center"
-                        placeholder="0.00">
-                    <span class="absolute right-4 top-3 text-gray-500 text-lg">؋</span>
+
+            <div class="oc-field">
+                <label class="oc-label">Starting Cash in Drawer (Af)</label>
+                <div class="oc-input-wrap">
+                    <span class="oc-prefix">Af</span>
+                    <input type="number"
+                           name="starting_cash"
+                           class="oc-input"
+                           placeholder="0"
+                           min="0" step="0.01"
+                           value="{{ old('starting_cash') }}"
+                           id="startingCashInput"
+                           autofocus required>
                 </div>
-                <p class="text-xs text-gray-500 mt-2">Enter the cash amount in the drawer at start of shift</p>
+                @error('starting_cash')
+                    <div style="font-size:12px;color:#fca5a5;margin-top:5px">{{ $message }}</div>
+                @enderror
+
+                {{-- Quick amounts --}}
+                <div class="oc-quick">
+                    @foreach([0, 1000, 2000, 5000, 10000] as $amt)
+                    <button type="button" class="oc-quick-btn"
+                            onclick="document.getElementById('startingCashInput').value = {{ $amt }}">
+                        {{ $amt === 0 ? 'Zero' : number_format($amt) }}
+                    </button>
+                    @endforeach
+                </div>
             </div>
 
-            <button type="submit" 
-                class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 rounded-lg transition duration-200">
-                Open Shift & Start Selling
+            <button type="submit" class="oc-submit">
+                <i class="fas fa-play-circle"></i>
+                Start Shift
             </button>
         </form>
-    </div>
 
-</body>
-</html>
+    </div>
+</div>
+@endsection
+
+@push('scripts')
+<script>
+(function tick() {
+    const el = document.getElementById('openShiftClock');
+    if (el) el.textContent = new Date().toLocaleTimeString('en-GB');
+    setTimeout(tick, 1000);
+})();
+</script>
+@endpush

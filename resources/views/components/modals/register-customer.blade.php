@@ -24,8 +24,8 @@
                     <input type="text" class="field-input" x-model="form.phone" placeholder="07XX XXX XXXX">
                 </div>
                 <div>
-                    <label class="field-label">City</label>
-                    <input type="text" class="field-input" x-model="form.city" placeholder="Kabul...">
+                    <label class="field-label">Address</label>
+                    <input type="text" class="field-input" x-model="form.address" placeholder="Kabul...">
                 </div>
                 <div>
                     <label class="field-label">Notes</label>
@@ -82,7 +82,7 @@
             form: {
                 name: '',
                 phone: '',
-                city: '',
+                address: '',
                 notes: ''
             },
             error: '',
@@ -95,7 +95,7 @@
                         this.form = {
                             name: '',
                             phone: '',
-                            city: '',
+                            address: '',
                             notes: ''
                         };
                         this.error = '';

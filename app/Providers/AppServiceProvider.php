@@ -4,7 +4,6 @@ namespace App\Providers;
 
 use App\Http\Controllers\AppLayoutController;
 use Illuminate\Support\ServiceProvider;
-use Illuminate\Support\Facades\App;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -22,6 +21,5 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         AppLayoutController::shareLayoutData();
-        App::setLocale(session('locale', 'en'));
     }
 }

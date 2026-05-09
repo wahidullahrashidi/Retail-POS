@@ -1,11 +1,15 @@
+@php
+    $currentLocale = app()->getLocale();
+    $isRtl = in_array($currentLocale, ['ps', 'dr'], true);
+@endphp
 <!DOCTYPE html>
-<html lang="{{ app()->getLocale() }}" x-data="appShell()" :class="darkMode ? 'dark' : ''" x-init="init()">
+<html lang="{{ $currentLocale }}" dir="{{ $isRtl ? 'rtl' : 'ltr' }}" x-data="appShell()" :class="darkMode ? 'dark' : ''" x-init="init()">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>Afghan POS — Retail Management</title>
+    <title>{{ __('messages.afghan_pos_retail_management') }}</title>
 
     {{-- Tailwind --}}
     <script src="https://cdn.tailwindcss.com"></script>
@@ -1016,6 +1020,102 @@
             --ink4: #3a3f52 !important;
         }
     </style>
+    <style>
+        @media (max-width: 768px) {
+            .shell {
+                grid-template-columns: 0 1fr !important;
+                grid-template-areas:
+                    "header header"
+                    "main main"
+                    "footer footer" !important;
+            }
+
+            .shell.mobile-open {
+                grid-template-columns: var(--sidebar-w) 1fr !important;
+            }
+
+            #sidebar {
+                position: fixed !important;
+                inset-block: 0 !important;
+                left: calc(-1 * var(--sidebar-w)) !important;
+                width: var(--sidebar-w) !important;
+                transform: translateX(0) !important;
+                z-index: 300 !important;
+            }
+
+            .shell.mobile-open #sidebar {
+                left: 0 !important;
+            }
+
+            .hdr-hamburger {
+                display: flex !important;
+            }
+
+            #app-header {
+                padding: 0 .75rem !important;
+            }
+
+            .header-right {
+                min-width: 0;
+            }
+
+            #app-footer {
+                display: none !important;
+            }
+        }
+
+        [dir="rtl"] #sidebar {
+            border-right: 0;
+            border-left: 1px solid #e2e8f0;
+        }
+
+        [dir="rtl"] .lang-menu {
+            right: auto;
+            left: 0;
+        }
+
+        [dir="rtl"] .lang-option {
+            text-align: right;
+        }
+
+        @media print {
+            #sidebar,
+            #app-header,
+            #app-footer,
+            .sidebar-overlay,
+            .no-print {
+                display: none !important;
+            }
+
+            body,
+            .shell,
+            #app-main {
+                display: block !important;
+                height: auto !important;
+                overflow: visible !important;
+                background: #fff !important;
+            }
+
+            body.print-section-active * {
+                visibility: hidden !important;
+            }
+
+            body.print-section-active [data-print-root],
+            body.print-section-active [data-print-root] * {
+                visibility: visible !important;
+            }
+
+            body.print-section-active [data-print-root] {
+                display: block !important;
+                position: absolute !important;
+                inset: 0 auto auto 0 !important;
+                width: 100% !important;
+                max-width: none !important;
+                margin: 0 !important;
+                box-shadow: none !important;
+            }
+        }
+    </style>
 </head>
 
 <body>
@@ -1044,6 +1144,28 @@
 
     {{-- Global scripts --}}
     <script>
+        window.printSection = function(selector) {
+            const target = document.querySelector(selector);
+            if (!target) {
+                window.print();
+                return;
+            }
+
+            document.querySelectorAll('[data-print-root]').forEach(el => el.removeAttribute('data-print-root'));
+            target.setAttribute('data-print-root', 'true');
+            document.body.classList.add('print-section-active');
+
+            const cleanup = () => {
+                document.body.classList.remove('print-section-active');
+                target.removeAttribute('data-print-root');
+                window.removeEventListener('afterprint', cleanup);
+            };
+
+            window.addEventListener('afterprint', cleanup, { once: true });
+            window.print();
+            setTimeout(cleanup, 1200);
+        };
+
         /* ── Alpine global store ── */
         document.addEventListener('alpine:init', () => {
             Alpine.store('customerModal', {
@@ -1070,11 +1192,11 @@
                 sidebarCollapsed: false,
                 mobileOpen: false,
                 darkMode: false,
-                lang: 'en',
+                lang: '{{ $currentLocale }}',
 
                 init() {
                 // Read current locale SET BY LARAVEL (server-side)
-                this.lang = '{{ app()->getLocale() }}';
+                this.lang = '{{ $currentLocale }}';
                 localStorage.setItem('app-lang', this.lang);
 
                 this.sidebarCollapsed = localStorage.getItem('sb-collapsed') === '1';
@@ -1109,8 +1231,9 @@
                 setLang(l) {
                 this.lang = l;
                 localStorage.setItem('app-lang', l);
+                this.applyLang();
                 // Redirect to a route that sets the Laravel locale server-side
-                window.location.href = '/language/' + l;
+                window.location.href = '{{ url('/language') }}/' + l;
                 },
 
                 applyLang() {
@@ -1121,9 +1244,9 @@
 
                 currentLangLabel() {
                     return {
-                        en: 'English',
-                        ps: 'پښتو',
-                        dr: 'دری'
+                        en: @json(__('messages.english')),
+                        ps: @json(__('messages.pashto')),
+                        dr: @json(__('messages.dari'))
                     } [this.lang] || 'EN';
                 },
 
@@ -1145,3 +1268,4 @@
 </body>
 
 </html>
+

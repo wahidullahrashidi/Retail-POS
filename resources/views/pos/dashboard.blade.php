@@ -386,7 +386,7 @@
                         <table class="txn-table">
                             <thead >
                                 <tr class="tb-head">
-                                    <th class="r">Ref</th>
+                                    <th class="r">Address</th>
                                     <th class="r">Customer</th>
                                     <th class="r">Time</th>
                                     <th class="r">Method</th>
@@ -523,10 +523,12 @@
                         @endforelse
                     </div>
                     @if ($lowStock->count())
+                    {{-- <a href="{{ route('pos.inventory.purchase.store') }}">
                         <button class="btn-purchase">
                             <i class="fas fa-truck-fast" style="margin-right:6px"></i>
                             Create Purchase Order
                         </button>
+                    </a> --}}
                     @endif
                 </div>
 

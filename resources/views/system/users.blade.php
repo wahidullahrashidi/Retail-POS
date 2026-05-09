@@ -807,7 +807,6 @@ Alpine.data('usersPage', () => ({
         this.loading = true;
         try {
             const p = new URLSearchParams({ q: this.search, role: this.filterRole, tab: this.tab });
-            console.debug('Loading users from', this.urls.list, p.toString());
             const r = await fetch(this.urls.list + '?' + p, {
                 headers: { 'Accept':'application/json','X-Requested-With':'XMLHttpRequest' },
                 credentials: 'same-origin'

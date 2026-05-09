@@ -46,7 +46,7 @@
 /* ══════════════════════════════════════
    BASE
 ══════════════════════════════════════ */
-.rp*{box-sizing:border-box}
+.rp *{box-sizing:border-box}
 .rp{font-family:var(--body);background:var(--bg);min-height:100vh;color:var(--ink)}
 [x-cloak]{display:none!important}
 
@@ -1435,8 +1435,8 @@ Alpine.data('reportsPage', () => ({
     },
 
     /* ── Export / Print ── */
-    // printReport() { window.print(); },
-    printZReport() { window.print(); },
+    printReport() { window.printSection('.rp'); },
+    printZReport() { window.printSection('#zreport-content'); },
     exportCsv()    { window.location.href = this.urls.export + '?from=' + this.dateFrom + '&to=' + this.dateTo + '&type=csv'; },
     exportPdf()    { window.location.href = this.urls.export + '?from=' + this.dateFrom + '&to=' + this.dateTo + '&type=pdf'; },
     exportZReportCsv() { window.location.href = this.urls.export + '?shift_id=' + this.selectedShift + '&type=zreport'; },

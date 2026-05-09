@@ -66,7 +66,7 @@ class DashboardController extends Controller
         $transactions = Loan::recentTransactions()->get();
 
         // low stock alert:
-        $lowStock = ProductVariant::lowStack()->get();
+        $lowStockItems = ProductVariant::lowStack()->get();
 
         try {
             $netProfitPercentage = (($netProfitToday - $netProfitYesterday) / $netProfitYesterday) * 100;
@@ -92,7 +92,7 @@ class DashboardController extends Controller
             'netProfitYesterday' => $netProfitYesterday,
             'netProfitPercentage' => $netProfitPercentage,
             'recentTransactions' => $transactions,
-            'lowStock' => $lowStock
+            'lowStock' => $lowStockItems
         ];
     }
 

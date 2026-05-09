@@ -716,7 +716,6 @@ textarea.field-input { resize: vertical; min-height: 70px; }
 @push('scripts')
 <script>
 const registerSalesPage = () => {
-    console.log('Registering salesPage Alpine component');
     Alpine.data('salesPage', () => ({
 
     /* list */
@@ -768,15 +767,12 @@ const registerSalesPage = () => {
 
     /* ── Init ── */
     init() {
-        console.log('Sales page Alpine init called');
         // Load all sales by default
         this.loadSales();
     },
 
     /* ── Load sales list ── */
     async loadSales() {
-        console.log('loadSales called');
-        console.log('URLs:', this.urls);
         this.loading = true;
         try {
             const p = new URLSearchParams({
@@ -791,19 +787,15 @@ const registerSalesPage = () => {
                 dir:     this.sortDir,
                 page:    this.currentPage,
             });
-            console.log('Params:', p.toString());
-            console.debug('Loading sales', this.urls.list, p.toString());
             const r = await fetch(this.urls.list + '?' + p, {
                 headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
                 credentials: 'same-origin'
             });
-            console.log('Response status:', r.status);
             if (!r.ok) {
                 const err = await r.text();
                 throw new Error(`Failed to load sales: ${r.status} ${err}`);
             }
             const d = await r.json();
-            console.log('Parsed JSON:', d);
             this.sales      = d.data;
             this.pagination = d.meta;
         } catch(e) { console.error(e); this.sales = []; this.pagination = {}; }
@@ -828,7 +820,6 @@ const registerSalesPage = () => {
         this.detailItems = [];
         this.detailLoading = true;
         try {
-            console.debug('Loading sale detail', s.id, `${this.urls.detail}/${s.id}/items`);
             const r = await fetch(`${this.urls.detail}/${s.id}/items`, {
                 headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
                 credentials: 'same-origin'
@@ -909,8 +900,10 @@ const registerSalesPage = () => {
 
         const el = document.getElementById('receipt-print');
         el.style.display = 'block';
-        window.print();
-        el.style.display = 'none';
+        window.printSection('#receipt-print');
+        window.addEventListener('afterprint', () => {
+            el.style.display = 'none';
+        }, { once: true });
     },
 
     /* ── Export ── */
@@ -931,7 +924,6 @@ if (window.Alpine && typeof window.Alpine.data === 'function') registerSalesPage
 
 <style>
 @media print {
-    body > *:not(#receipt-print) { display: none !important; }
     #receipt-print { display: block !important; }
 }
 </style>
