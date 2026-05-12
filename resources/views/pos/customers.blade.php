@@ -536,7 +536,7 @@ function customersPage() {
                     headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
                 });
                 const d = await r.json();
-                this.customers  = d.data;
+                this.customers  = (d.data).slice(0, 10);
                 this.pagination = d.meta;
             } catch(e) { console.error(e); }
             finally { this.loading = false; }

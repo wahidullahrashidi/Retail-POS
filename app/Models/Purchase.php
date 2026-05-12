@@ -12,7 +12,7 @@ class Purchase extends Model
     {
         return $this->belongsTo(Supplier::class);
     }
-    
+
     // Purchase.php
     public function purchaseItems()
     {
@@ -27,5 +27,9 @@ class Purchase extends Model
     public function createdBy()
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+    public function payments()
+    {
+        return $this->hasMany(PurchasePayment::class);
     }
 }

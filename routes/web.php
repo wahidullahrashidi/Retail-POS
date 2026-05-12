@@ -107,6 +107,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/sales',               [SalesController::class, 'index'])->name('sales.index');
         Route::get('/sales/export',        [SalesController::class, 'export'])->name('sales.export');
         Route::post('/sales/refund',       [SalesController::class, 'refund'])->name('sales.refund');
+        // Route::delete('/sales/{sale}',     [SalesController::class, 'destroy'])->name('sales.destroy');
         Route::get('/sales/{sale}/items',  [SalesController::class, 'items'])->name('sales.items');
 
 
@@ -120,9 +121,9 @@ Route::middleware('auth')->group(function () {
         // ── Purchases ──────────────────────────────────────────
         Route::get('/purchases',                       [PurchaseController::class, 'index'])->name('purchases.index');
         Route::post('/purchases/receive',              [PurchaseController::class, 'receive'])->name('purchases.receive');
+        Route::post('/purchases/payment',              [PurchaseController::class, 'storepayment'])->name('purchases.payment');
         Route::get('/purchases/{purchase}/items',      [PurchaseController::class, 'items'])->name('purchases.items');
         Route::post('/purchases/{purchase}/cancel',    [PurchaseController::class, 'cancel'])->name('purchases.cancel');
-
         // ── Backup & Sync ──────────────────────────────────────
         Route::get('/backup',              [BackupController::class, 'page'])->name('backup');
         Route::get('/backup/status',       [BackupController::class, 'status'])->name('backup.status');

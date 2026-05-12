@@ -6,8 +6,8 @@
         rel="stylesheet">
     <style>
         /* ══════════════════════════════════════
-       TOKENS
-    ══════════════════════════════════════ */
+                                   TOKENS
+                                ══════════════════════════════════════ */
         :root {
             --bg: #eef0f6;
             --surface: #ffffff;
@@ -44,8 +44,8 @@
         }
 
         /* ══════════════════════════════════════
-       BASE
-    ══════════════════════════════════════ */
+                                   BASE
+                                ══════════════════════════════════════ */
         .sp * {
             box-sizing: border-box;
         }
@@ -62,8 +62,8 @@
         }
 
         /* ══════════════════════════════════════
-       TOPBAR
-    ══════════════════════════════════════ */
+                                   TOPBAR
+                                ══════════════════════════════════════ */
         .sp-top {
             background: var(--surface);
             border-bottom: 1px solid var(--border);
@@ -98,8 +98,8 @@
         }
 
         /* ══════════════════════════════════════
-       BUTTONS
-    ══════════════════════════════════════ */
+                                   BUTTONS
+                                ══════════════════════════════════════ */
         .btn {
             display: inline-flex;
             align-items: center;
@@ -175,8 +175,8 @@
         }
 
         /* ══════════════════════════════════════
-       STAT STRIP
-    ══════════════════════════════════════ */
+                                   STAT STRIP
+                                ══════════════════════════════════════ */
         .stat-strip {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
@@ -245,8 +245,8 @@
         }
 
         /* ══════════════════════════════════════
-       TABS
-    ══════════════════════════════════════ */
+                                   TABS
+                                ══════════════════════════════════════ */
         .sp-tabs {
             display: flex;
             gap: 2px;
@@ -286,8 +286,8 @@
         }
 
         /* ══════════════════════════════════════
-       PANEL
-    ══════════════════════════════════════ */
+                                   PANEL
+                                ══════════════════════════════════════ */
         .sp-panel {
             display: none;
             padding: 1.1rem 1.75rem 2rem;
@@ -311,8 +311,8 @@
         }
 
         /* ══════════════════════════════════════
-       TOOLBAR
-    ══════════════════════════════════════ */
+                                   TOOLBAR
+                                ══════════════════════════════════════ */
         .sp-toolbar {
             display: flex;
             align-items: center;
@@ -379,8 +379,8 @@
         }
 
         /* ══════════════════════════════════════
-       MAIN LAYOUT (table + panel)
-    ══════════════════════════════════════ */
+                                   MAIN LAYOUT (table + panel)
+                                ══════════════════════════════════════ */
         .sp-main {
             display: grid;
             grid-template-columns: 1fr;
@@ -395,8 +395,8 @@
         }
 
         /* ══════════════════════════════════════
-       TABLE
-    ══════════════════════════════════════ */
+                                   TABLE
+                                ══════════════════════════════════════ */
         .table-card {
             background: var(--surface);
             border: 1px solid var(--border);
@@ -570,8 +570,8 @@
         }
 
         /* ══════════════════════════════════════
-       PAGINATION
-    ══════════════════════════════════════ */
+                                   PAGINATION
+                                ══════════════════════════════════════ */
         .pag-row {
             display: flex;
             align-items: center;
@@ -625,8 +625,8 @@
         }
 
         /* ══════════════════════════════════════
-       EMPTY / LOADING
-    ══════════════════════════════════════ */
+                                   EMPTY / LOADING
+                                ══════════════════════════════════════ */
         .empty-state {
             text-align: center;
             padding: 4rem 2rem;
@@ -653,8 +653,8 @@
         }
 
         /* ══════════════════════════════════════
-       DETAIL PANEL (shared)
-    ══════════════════════════════════════ */
+                                   DETAIL PANEL (shared)
+                                ══════════════════════════════════════ */
         .detail-panel {
             background: var(--surface);
             border: 1px solid var(--border);
@@ -905,8 +905,8 @@
         }
 
         /* ══════════════════════════════════════
-       PO TABLE specifics
-    ══════════════════════════════════════ */
+                                   PO TABLE specifics
+                                ══════════════════════════════════════ */
         .po-progress {
             display: flex;
             align-items: center;
@@ -1004,8 +1004,8 @@
         }
 
         /* ══════════════════════════════════════
-       MODALS
-    ══════════════════════════════════════ */
+                                   MODALS
+                                ══════════════════════════════════════ */
         .modal-overlay {
             position: fixed;
             inset: 0;
@@ -1292,7 +1292,8 @@
                             </thead>
                             <tbody>
                                 <template x-for="s in suppliers" :key="s.id">
-                                    <tr :class="selectedSupplier?.id === s.id ? 'selected' : ''" @click="openSupplierDetail(s)">
+                                    <tr :class="selectedSupplier?.id === s.id ? 'selected' : ''"
+                                        @click="openSupplierDetail(s)">
                                         <td>
                                             <div class="sup-cell">
                                                 <div class="sup-av" :style="`background:${avatarColor(s.name)}`"
@@ -1341,7 +1342,8 @@
                                     x-text="supPagination.to"></span> of <span x-text="supPagination.total"></span></div>
                             <div class="pag-btns">
                                 <button class="pag-btn" @click="supGoPage(supPagination.current_page-1)"
-                                    :disabled="supPagination.current_page === 1"><i class="fas fa-chevron-left"></i></button>
+                                    :disabled="supPagination.current_page === 1"><i
+                                        class="fas fa-chevron-left"></i></button>
                                 <template x-for="p in supPagination.last_page" :key="p">
                                     <button class="pag-btn" :class="p === supPagination.current_page ? 'active' : ''"
                                         @click="supGoPage(p)" x-text="p"></button>
@@ -1589,10 +1591,16 @@
                                                     @click="openPODetail(po)" title="Receive Stock">
                                                     <i class="fas fa-boxes-stacked"></i>
                                                 </button>
+                                                <button type="button" class="btn btn-teal btn-sm"
+                                                    x-show="po.payment_status!=='paid' && po.status!=='cancelled'"
+                                                    @click="openPaymentModal(po)" title="Record Payment">
+                                                    <i class="fas fa-money-bill-wave"></i>
+                                                </button>
                                                 <button type="button" class="btn btn-danger btn-sm"
                                                     x-show="po.status==='ordered'" @click="cancelPO(po)" title="Cancel">
                                                     <i class="fas fa-times"></i>
                                                 </button>
+                                                
                                             </div>
                                         </td>
                                     </tr>
@@ -1604,7 +1612,8 @@
                                     x-text="poPagination.to"></span> of <span x-text="poPagination.total"></span></div>
                             <div class="pag-btns">
                                 <button class="pag-btn" @click="poGoPage(poPagination.current_page-1)"
-                                    :disabled="poPagination.current_page === 1"><i class="fas fa-chevron-left"></i></button>
+                                    :disabled="poPagination.current_page === 1"><i
+                                        class="fas fa-chevron-left"></i></button>
                                 <template x-for="p in poPagination.last_page" :key="p">
                                     <button class="pag-btn" :class="p === poPagination.current_page ? 'active' : ''"
                                         @click="poGoPage(p)" x-text="p"></button>
@@ -1704,7 +1713,8 @@
                                                 x-text="'Max: ' + (item.quantity_ordered - item.quantity_received)"></span>
                                             <input class="ri-input" type="number" x-model.number="item.receive_qty"
                                                 :max="item.quantity_ordered - item.quantity_received" min="0"
-                                                placeholder="0" :disabled="item.quantity_received >= item.quantity_ordered">
+                                                placeholder="0"
+                                                :disabled="item.quantity_received >= item.quantity_ordered">
                                         </div>
                                     </div>
                                 </template>
@@ -1738,6 +1748,99 @@
                 </div>
 
             </div>{{-- /sp-main purchases --}}
+        </div>
+
+        {{-- ════ PURCHASE PAYMENT MODAL ════ --}}
+        <div class="modal-overlay" x-show="showPaymentModal" x-cloak @click.self="showPaymentModal=false">
+            <div class="modal-card modal-sm">
+                <div class="modal-head">
+                    <div class="modal-title">Record Purchase Payment</div>
+                    <button class="modal-close" @click="showPaymentModal=false">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+
+                    {{-- PO summary --}}
+                    <div
+                        style="padding:10px 14px;background:var(--s2);border:1px solid var(--border);border-radius:var(--rsm);margin-bottom:1rem">
+                        <div
+                            style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;color:var(--ink2)">
+                            <span>Purchase Order</span>
+                            <span style="font-family:var(--mono);font-weight:600" x-text="paymentPO?.local_id"></span>
+                        </div>
+                        <div
+                            style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;color:var(--ink2)">
+                            <span>Supplier</span>
+                            <span style="font-weight:600" x-text="paymentPO?.supplier"></span>
+                        </div>
+                        <div
+                            style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;color:var(--ink2)">
+                            <span>Total Cost</span>
+                            <span style="font-family:var(--mono)" x-text="'Af ' + fmt(paymentPO?.total_cost||0)"></span>
+                        </div>
+                        <div
+                            style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;color:var(--green)">
+                            <span>Already Paid</span>
+                            <span style="font-family:var(--mono);font-weight:600"
+                                x-text="'Af ' + fmt(paymentPO?.amount_paid||0)"></span>
+                        </div>
+                        <div
+                            style="display:flex;justify-content:space-between;font-size:13px;font-weight:700;color:var(--red);border-top:1px solid var(--border);padding-top:6px;margin-top:6px">
+                            <span>Remaining Balance</span>
+                            <span style="font-family:var(--mono)"
+                                x-text="'Af ' + fmt((paymentPO?.total_cost||0) - (paymentPO?.amount_paid||0))"></span>
+                        </div>
+                    </div>
+
+                    {{-- Amount input --}}
+                    <div style="margin-bottom:.9rem">
+                        <label class="field-label">Payment Amount (Af) <span class="field-req">*</span></label>
+                        <div style="position:relative">
+                            <span
+                                style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font-family:var(--mono);font-size:14px;color:var(--ink3);pointer-events:none">Af</span>
+                            <input type="number" class="field-input" x-model.number="paymentAmount"
+                                :max="(paymentPO?.total_cost || 0) - (paymentPO?.amount_paid || 0)" min="0"
+                                placeholder="0" style="padding-left:36px;font-family:var(--mono);font-size:16px">
+                        </div>
+                        <div style="font-size:11px;color:var(--ink3);margin-top:4px">
+                            Remaining after this payment:
+                            <strong style="font-family:var(--mono);color:var(--red)"
+                                x-text="'Af ' + fmt(Math.max(0, (paymentPO?.total_cost||0) - (paymentPO?.amount_paid||0) - (paymentAmount||0)))">
+                            </strong>
+                        </div>
+                    </div>
+
+                    {{-- Quick amount buttons --}}
+                    <div style="display:flex;gap:6px;margin-bottom:.9rem;flex-wrap:wrap">
+                        <button type="button" class="btn btn-ghost btn-sm"
+                            @click="paymentAmount = (paymentPO?.total_cost||0) - (paymentPO?.amount_paid||0)">
+                            Pay Full Balance
+                        </button>
+                        <button type="button" class="btn btn-ghost btn-sm"
+                            @click="paymentAmount = Math.round(((paymentPO?.total_cost||0) - (paymentPO?.amount_paid||0)) / 2)">
+                            Pay Half
+                        </button>
+                    </div>
+
+                    {{-- Notes --}}
+                    <div>
+                        <label class="field-label">Notes</label>
+                        <textarea class="field-input" x-model="paymentNote" rows="2" placeholder="Optional payment note…"></textarea>
+                    </div>
+
+                    <div x-show="poPaymentError" x-cloak
+                        style="margin-top:.75rem;padding:9px 12px;background:var(--rdim);border:1px solid rgba(220,38,38,.2);border-radius:var(--rsm);font-size:12px;color:var(--red)"
+                        x-text="poPaymentError"></div>
+                </div>
+                <div class="modal-foot">
+                    <button type="button" class="btn btn-ghost" @click="showPaymentModal=false">Cancel</button>
+                    <button type="button" class="btn btn-primary" @click="savePOPayment()" :disabled="saving">
+                        <i class="fas fa-spinner fa-spin" x-show="saving"></i>
+                        <span x-text="saving ? 'Saving…' : 'Record Payment'"></span>
+                    </button>
+                </div>
+            </div>
         </div>
 
         {{-- ══════════════════════════════════════════
@@ -1861,6 +1964,13 @@
                 formError: '',
                 saving: false,
 
+                // purchase payment:
+                showPaymentModal: false,
+                paymentPO: null,
+                paymentAmount: 0,
+                paymentNote: '',
+                poPaymentError: '',
+
                 /* urls */
                 urls: {
                     suppliers: '{{ route('pos.suppliers.index') }}',
@@ -1871,6 +1981,7 @@
                     poItems: '{{ url('pos/purchases') }}',
                     poReceive: '{{ route('pos.purchases.receive') }}',
                     poCancel: '{{ url('pos/purchases') }}',
+                    poPayment: '{{ route('pos.purchases.payment') }}',
                     csrf: document.querySelector('meta[name=csrf-token]').content,
                 },
 
@@ -1884,6 +1995,54 @@
                     this.activeTab = t;
                     this.selectedSupplier = null;
                     this.selectedPO = null;
+                },
+
+                openPaymentModal(po) {
+                    this.paymentPO = po;
+                    this.paymentAmount = 0;
+                    this.paymentNote = '';
+                    this.poPaymentError = '';
+                    this.showPaymentModal = true;
+                },
+
+                async savePOPayment() {
+                    if (!this.paymentAmount || this.paymentAmount <= 0) {
+                        this.poPaymentError = 'Enter a valid amount.';
+                        return;
+                    }
+                    const remaining = (this.paymentPO?.total_cost || 0) - (this.paymentPO
+                        ?.amount_paid || 0);
+                    if (this.paymentAmount > remaining) {
+                        this.poPaymentError = 'Amount exceeds remaining balance.';
+                        return;
+                    }
+                    this.saving = true;
+                    this.poPaymentError = '';
+                    try {
+                        const r = await fetch(this.urls.poPayment, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': this.urls.csrf
+                            },
+                            body: JSON.stringify({
+                                purchase_id: this.paymentPO.id,
+                                amount: this.paymentAmount,
+                                notes: this.paymentNote,
+                            })
+                        });
+                        const d = await r.json();
+                        if (d.success) {
+                            this.showPaymentModal = false;
+                            this.loadPOs();
+                        } else {
+                            this.poPaymentError = d.message ?? 'Payment failed.';
+                        }
+                    } catch (e) {
+                        this.poPaymentError = 'Network error.';
+                    } finally {
+                        this.saving = false;
+                    }
                 },
 
                 /* ══════════════════════════════
@@ -1931,6 +2090,7 @@
                     this.supPage = p;
                     this.loadSuppliers();
                 },
+
 
                 async openSupplierDetail(s) {
                     this.selectedSupplier = s;

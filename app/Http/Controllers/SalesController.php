@@ -177,110 +177,224 @@ class SalesController extends Controller
     //  POST /pos/sales/refund
     // ══════════════════════════════════════════
     public function refund(Request $request)
-    {
-        $request->validate([
-            'sale_id'          => 'required|integer|exists:sales,id',
-            'items'            => 'required|array|min:1',
-            'items.*.sale_item_id' => 'required|integer|exists:sale_items,id',
-            'items.*.qty'      => 'required|integer|min:1',
-            'reason'           => 'required|string|max:500',
-        ]);
+{
+    $request->validate([
+        'sale_id'               => 'required|integer|exists:sales,id',
+        'items'                 => 'required|array|min:1',
+        'items.*.sale_item_id'  => 'required|integer|exists:sale_items,id',
+        'items.*.qty'           => 'required|integer|min:1',
+        'reason'                => 'required|string|max:500',
+    ]);
 
-        DB::beginTransaction();
+    DB::beginTransaction();
 
-        try {
-            $sale = Sale::with('saleItems.variant', 'loan')->findOrFail($request->sale_id);
+    try {
 
-            if ($sale->status === 'refunded') {
-                throw new \Exception('This sale has already been refunded.');
+        // ═══════════════════════════════════════
+        // LOAD SALE
+        // ═══════════════════════════════════════
+        $sale = Sale::with([
+            'saleItems.variant',
+            'loan',
+        ])->lockForUpdate()->findOrFail($request->sale_id);
+
+        // ═══════════════════════════════════════
+        // VALIDATIONS
+        // ═══════════════════════════════════════
+        if ($sale->status === 'refunded') {
+            throw new \Exception('Sale already fully refunded.');
+        }
+
+        if ($sale->status !== 'completed') {
+            throw new \Exception('Only completed sales can be refunded.');
+        }
+
+        // ═══════════════════════════════════════
+        // TOTAL VALUE OF RETURNED ITEMS
+        // (NOT NECESSARILY CASH REFUND)
+        // ═══════════════════════════════════════
+        $returnValue = 0;
+
+        // ═══════════════════════════════════════
+        // PROCESS RETURN ITEMS
+        // ═══════════════════════════════════════
+        foreach ($request->items as $refundItem) {
+
+            $saleItem = $sale->saleItems
+                ->firstWhere('id', $refundItem['sale_item_id']);
+
+            if (!$saleItem) {
+                throw new \Exception('Sale item not found.');
             }
 
-            if ($sale->status !== 'completed') {
-                throw new \Exception('Only completed sales can be refunded.');
+            // Prevent over-returning
+            $maxRefundable = $saleItem->quantity - $saleItem->returned_qty;
+
+            if ($refundItem['qty'] > $maxRefundable) {
+                throw new \Exception(
+                    "Refund qty exceeds available qty for {$saleItem->variant->sku}."
+                );
             }
 
-            $refundTotal = 0;
+            // ═══════════════════════════════════
+            // RESTORE STOCK
+            // ═══════════════════════════════════
+            $variant = ProductVariant::lockForUpdate()
+                ->findOrFail($saleItem->variant_id);
 
-            foreach ($request->items as $refundItem) {
-                $saleItem = $sale->saleItems->firstWhere('id', $refundItem['sale_item_id']);
+            $prevStock = $variant->stock_quantity;
+            $newStock  = $prevStock + $refundItem['qty'];
 
-                if (!$saleItem) {
-                    throw new \Exception("Sale item not found.");
-                }
-
-                $maxRefundable = $saleItem->quantity - $saleItem->returned_qty;
-                if ($refundItem['qty'] > $maxRefundable) {
-                    throw new \Exception("Refund qty exceeds available qty for {$saleItem->variant->sku}.");
-                }
-
-                // ── Restore stock ────────────────────
-                $variant = ProductVariant::lockForUpdate()->findOrFail($saleItem->variant_id);
-                $prevStock = $variant->stock_quantity;
-                $newStock  = $prevStock + $refundItem['qty'];
-                $variant->update(['stock_quantity' => $newStock]);
-
-                // Log the adjustment
-                InventoryAdjustment::create([
-                    'variant_id'      => $variant->id,
-                    'adjustment_type' => 'return_to_supplier',
-                    'quantity'        => $refundItem['qty'],
-                    'reason'          => "Refund of sale {$sale->local_id}: {$request->reason}",
-                    'reference_type'  => Sale::class,
-                    'reference_id'    => $sale->id,
-                    'adjusted_by'     => auth()->id(),
-                    'previous_stock'  => $prevStock,
-                    'new_stock'       => $newStock,
-                ]);
-
-                // ── Mark sale item as returned ───────
-                $saleItem->update([
-                    'is_returned'  => ($refundItem['qty'] === $saleItem->quantity),
-                    'returned_qty' => $saleItem->returned_qty + $refundItem['qty'],
-                ]);
-
-                // Calculate refund amount for this item
-                $unitPrice   = $saleItem->unit_price;
-                $refundTotal += $unitPrice * $refundItem['qty'];
-            }
-
-            // ── Update sale status ───────────────────
-            $allReturned = $sale->saleItems->every(
-                fn($i) => $i->fresh()->returned_qty >= $i->quantity
-            );
-            $sale->update([
-                'status'   => $allReturned ? 'refunded' : 'completed',
-                'notes'    => ($sale->notes ? $sale->notes . ' | ' : '') . "Partial refund: {$request->reason}",
+            $variant->update([
+                'stock_quantity' => $newStock,
             ]);
 
-            // ── Adjust loan if applicable ────────────
-            if ($sale->payment_method === 'loan' && $sale->loan) {
-                $loan = $sale->loan;
-                // Reduce the loan balance by the refund amount
-                $newRemaining = max(0, $loan->remaining_balance - $refundTotal);
-                $newPaid      = max(0, $loan->original_amount - $newRemaining);
+            // ═══════════════════════════════════
+            // INVENTORY LOG
+            // ═══════════════════════════════════
+            InventoryAdjustment::create([
+                'variant_id'      => $variant->id,
+                'adjustment_type' => 'sale_return',
+                'quantity'        => $refundItem['qty'],
+                'reason'          => "Sale return {$sale->local_id}: {$request->reason}",
+                'reference_type'  => Sale::class,
+                'reference_id'    => $sale->id,
+                'adjusted_by'     => auth()->id(),
+                'previous_stock'  => $prevStock,
+                'new_stock'       => $newStock,
+            ]);
+
+            // ═══════════════════════════════════
+            // UPDATE SALE ITEM RETURN STATUS
+            // ═══════════════════════════════════
+            $newReturnedQty = $saleItem->returned_qty + $refundItem['qty'];
+
+            $saleItem->update([
+                'returned_qty' => $newReturnedQty,
+                'is_returned'  => $newReturnedQty >= $saleItem->quantity,
+            ]);
+
+            // ═══════════════════════════════════
+            // CALCULATE RETURN VALUE
+            // ═══════════════════════════════════
+            $returnValue += (
+                $saleItem->unit_price * $refundItem['qty']
+            );
+        }
+
+        // ═══════════════════════════════════════
+        // DETERMINE CASH REFUND
+        // ═══════════════════════════════════════
+        $cashRefund = $returnValue;
+
+        // ═══════════════════════════════════════
+        // LOAN HANDLING
+        // ═══════════════════════════════════════
+        if ($sale->payment_method === 'loan' && $sale->loan) {
+
+            $loan = $sale->loan;
+
+            $remainingLoan = $loan->remaining_balance;
+            $paidAmount    = $loan->amount_paid;
+
+            // ───────────────────────────────────
+            // CASE 1:
+            // RETURN ONLY REDUCES DEBT
+            // Customer receives NO cash
+            // ───────────────────────────────────
+            if ($returnValue <= $remainingLoan) {
+
+                $newRemaining = $remainingLoan - $returnValue;
+
                 $loan->update([
                     'remaining_balance' => $newRemaining,
-                    'amount_paid'       => $newPaid,
-                    'status'            => $newRemaining <= 0 ? 'paid' : $loan->status,
+                    'status' => $newRemaining <= 0
+                        ? 'paid'
+                        : 'partial',
                 ]);
+
+                $cashRefund = 0;
             }
 
-            DB::commit();
+            // ───────────────────────────────────
+            // CASE 2:
+            // RETURN EXCEEDS REMAINING DEBT
+            // Customer gets extra as cash refund
+            // ───────────────────────────────────
+            else {
 
-            return response()->json([
-                'success'      => true,
-                'refund_total' => $refundTotal,
-                'fully_refunded' => $allReturned,
-                'message'      => $allReturned
-                    ? 'Sale fully refunded and stock restored.'
-                    : "Partial refund of Af {$refundTotal} processed.",
-            ]);
+                $extraRefund = $returnValue - $remainingLoan;
 
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
+                // Never refund more than customer paid
+                $cashRefund = min($extraRefund, $paidAmount);
+
+                $newPaid = max(0, $paidAmount - $cashRefund);
+
+                $loan->update([
+                    'remaining_balance' => 0,
+                    'amount_paid'       => $newPaid,
+                    'status'            => 'paid',
+                ]);
+            }
         }
+
+        // ═══════════════════════════════════════
+        // CHECK FULL/PARTIAL REFUND
+        // ═══════════════════════════════════════
+        $allReturned = $sale->saleItems->every(function ($item) {
+
+            $freshItem = $item->fresh();
+
+            return $freshItem->returned_qty >= $freshItem->quantity;
+        });
+
+        // ═══════════════════════════════════════
+        // UPDATE SALE STATUS
+        // ═══════════════════════════════════════
+        $sale->update([
+            'status' => $allReturned
+                ? 'refunded'
+                : 'completed',
+
+            'notes' => trim(
+                ($sale->notes ? $sale->notes . ' | ' : '') .
+                "Return processed: {$request->reason}"
+            ),
+        ]);
+
+        DB::commit();
+
+        // ═══════════════════════════════════════
+        // RESPONSE
+        // ═══════════════════════════════════════
+        return response()->json([
+
+            'success' => true,
+
+            // value of goods returned
+            'return_value' => $returnValue,
+
+            // actual money returned
+            'cash_refund' => $cashRefund,
+
+            'fully_refunded' => $allReturned,
+
+            'message' => $cashRefund > 0
+                ? "Return processed. Customer refunded Af " .
+                    number_format($cashRefund, 2)
+                : "Return processed successfully. Loan balance adjusted.",
+        ]);
+
+    } catch (\Exception $e) {
+
+        DB::rollBack();
+
+        return response()->json([
+            'success' => false,
+            'message' => $e->getMessage(),
+        ], 422);
     }
+}
 
     // ══════════════════════════════════════════
     //  EXPORT — CSV download
@@ -334,5 +448,15 @@ class SalesController extends Controller
         };
 
         return response()->stream($callback, 200, $headers);
+    }
+
+    // Delete sales records
+    public function destroy(Sale $sale)
+    {
+        $sale->delete();
+
+        return response()->json([
+            'success' => true
+        ]);
     }
 }

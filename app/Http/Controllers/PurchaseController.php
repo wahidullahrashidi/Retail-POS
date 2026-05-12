@@ -9,6 +9,7 @@ use App\Models\InventoryAdjustment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
+use App\Models\PurchasePayment;
 
 class PurchaseController extends Controller
 {
@@ -45,10 +46,11 @@ class PurchaseController extends Controller
             ');
 
         if ($q) {
-            $query->where(fn($qb) =>
+            $query->where(
+                fn($qb) =>
                 $qb->where('purchases.local_id', 'like', "%{$q}%")
-                   ->orWhere('suppliers.name', 'like', "%{$q}%")
-                   ->orWhere('purchases.reference_number', 'like', "%{$q}%")
+                    ->orWhere('suppliers.name', 'like', "%{$q}%")
+                    ->orWhere('purchases.reference_number', 'like', "%{$q}%")
             );
         }
 
@@ -60,7 +62,7 @@ class PurchaseController extends Controller
         $items = collect($paginated->items())->map(fn($p) => [
             'id'             => $p->id,
             'local_id'       => $p->local_id,
-            'reference_number'=> $p->reference_number,
+            'reference_number' => $p->reference_number,
             'purchase_date'  => Carbon::parse($p->purchase_date)->format('d M Y'),
             'delivery_date'  => $p->delivery_date ? Carbon::parse($p->delivery_date)->format('d M Y') : null,
             'status'         => $p->status,
@@ -70,8 +72,8 @@ class PurchaseController extends Controller
             'notes'          => $p->notes,
             'supplier'       => $p->supplier,
             'received_pct'   => $p->total_ordered > 0
-                                ? round(($p->total_received / $p->total_ordered) * 100)
-                                : 0,
+                ? round(($p->total_received / $p->total_ordered) * 100)
+                : 0,
         ]);
 
         return response()->json([
@@ -218,7 +220,6 @@ class PurchaseController extends Controller
                     ? 'All items received. Stock updated.'
                     : 'Partial receipt recorded. Stock updated.',
             ]);
-
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
@@ -242,5 +243,77 @@ class PurchaseController extends Controller
 
         return response()->json(['success' => true]);
     }
-}
 
+    // ══════════════════════════════════════════
+    //  RECORD PURCHASE PAYMENT
+    //  POST /pos/purchases/payment
+    // ══════════════════════════════════════════
+
+    public function storePayment(Request $request)
+    {
+        $request->validate([
+            'purchase_id' => 'required|integer|exists:purchases,id',
+            'amount'      => 'required|numeric|min:0.01',
+            'notes'       => 'nullable|string|max:500',
+        ]);
+
+        $purchase = Purchase::findOrFail($request->purchase_id);
+
+        // prevent cancelled purchase payments
+        if ($purchase->status === 'cancelled') {
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Cannot pay cancelled purchase.',
+            ], 422);
+        }
+
+        $remaining = $purchase->total_cost - $purchase->amount_paid;
+
+        // prevent overpayment
+        if ($request->amount > $remaining) {
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Payment exceeds remaining balance.',
+            ], 422);
+        }
+
+        DB::transaction(function () use ($request, $purchase) {
+
+            // save payment history
+            PurchasePayment::create([
+                'purchase_id'     => $purchase->id,
+                'amount'          => $request->amount,
+                'payment_method'  => 'cash',
+                'payment_date'    => now(),
+                'reference_number' => null,
+                'notes'           => $request->notes,
+                'created_by'      => auth()->id(),
+            ]);
+
+            // recalculate paid amount
+            $paid = $purchase->payments()->sum('amount');
+
+            $remaining = $purchase->total_cost - $paid;
+
+            // update summary fields
+            $purchase->update([
+                'amount_paid' => $paid,
+                'payment_status' => $remaining <= 0
+                    ? 'paid'
+                    : ($paid > 0 ? 'partial' : 'unpaid'),
+            ]);
+        });
+
+        $purchase->refresh();
+
+        return response()->json([
+            'success' => true,
+            'amount_paid' => $purchase->amount_paid,
+            'payment_status' => $purchase->payment_status,
+            'remaining_balance' =>
+            $purchase->total_cost - $purchase->amount_paid,
+        ]);
+    }
+}
