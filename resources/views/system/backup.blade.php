@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @push('styles')
-    @vite(['resources/css/app.css'])
+    @vite(['resources/css/pages/backup.css'])
 @endpush
 
 @section('content')
@@ -45,7 +45,8 @@
                     </div>
                     <div class="sc-val" style="color:var(--amber)" x-text="status.total_pending || 0"></div>
                     <div class="sc-sub">
-                        <span class="status-dot" :class="(status.total_pending || 0) > 0 ? 'dot-amber' : 'dot-green'"></span>
+                        <span class="status-dot"
+                            :class="(status.total_pending || 0) > 0 ? 'dot-amber' : 'dot-green'"></span>
                         <span
                             x-text="(status.total_pending||0) > 0 ? 'records awaiting sync' : 'all records synced'"></span>
                     </div>
@@ -409,17 +410,20 @@
                                     @click="cloudConfig.provider='gdrive'">
                                     <span class="cloud-btn-icon">🗂️</span>
                                     <div class="cloud-btn-label">Google Drive</div>
-                                    <div class="cloud-btn-sub">Free 15GB</div>
+                                    <div class="cloud-btn-sub" x-text="cloudQuota.free + ' free'">
+                                    </div>
                                 </button>
                                 <button type="button" class="cloud-btn"
                                     :class="cloudConfig.provider === 'dropbox' ? 'active' : ''"
                                     @click="cloudConfig.provider='dropbox'">
                                     <span class="cloud-btn-icon">📦</span>
                                     <div class="cloud-btn-label">Dropbox</div>
-                                    <div class="cloud-btn-sub">Free 2GB</div>
+                                    <div class="cloud-btn-sub" x-text="dropboxQuota.free || 'Loading...'">
+                                    </div>
                                 </button>
                                 <button type="button" class="cloud-btn"
-                                    :class="cloudConfig.provider === 'ftp' ? 'active' : ''" @click="cloudConfig.provider='ftp'">
+                                    :class="cloudConfig.provider === 'ftp' ? 'active' : ''"
+                                    @click="cloudConfig.provider='ftp'">
                                     <span class="cloud-btn-icon">🖥️</span>
                                     <div class="cloud-btn-label">FTP Server</div>
                                     <div class="cloud-btn-sub">Custom server</div>
@@ -442,11 +446,32 @@
                                     </div>
                                 </div>
                                 <div class="config-env" style="margin-top:.75rem">
-                                    <div class="env-title">Add to your .env file</div>
-                                    <div class="env-line">FILESYSTEM_CLOUD=<span>google</span></div>
-                                    <div class="env-line">GOOGLE_DRIVE_CLIENT_ID=<span>your_client_id</span></div>
-                                    <div class="env-line">GOOGLE_DRIVE_CLIENT_SECRET=<span>your_secret</span></div>
-                                    <div class="env-line">GOOGLE_DRIVE_REFRESH_TOKEN=<span>your_token</span></div>
+                                    <div class="env-title">Current .env Configuration</div>
+
+                                    <div class="env-line">
+                                        FILESYSTEM_CLOUD=
+                                        <span x-text="cloudConfig.provider"></span>
+                                    </div>
+
+                                    <div class="env-line">
+                                        GOOGLE_DRIVE_CLIENT_ID=
+                                        <span x-text="cloudConfig.client_id || 'Not set'"></span>
+                                    </div>
+
+                                    <div class="env-line">
+                                        GOOGLE_DRIVE_CLIENT_SECRET=
+                                        <span x-text="cloudConfig.client_secret ? '••••••••' : 'Not set'"></span>
+                                    </div>
+
+                                    <div class="env-line">
+                                        GOOGLE_DRIVE_REFRESH_TOKEN=
+                                        <span x-text="cloudConfig.refresh_token ? 'Configured' : 'Not set'"></span>
+                                    </div>
+
+                                    <div class="env-line">
+                                        GOOGLE_DRIVE_FOLDER_ID=
+                                        <span x-text="cloudConfig.folder_id || 'Not set'"></span>
+                                    </div>
                                 </div>
                             </div>
 
@@ -597,6 +622,16 @@
                 backupPct: 0,
                 backupStepLabel: '',
                 syncRunning: false,
+                cloudQuota: {
+                    free: 'Loading...',
+                    used: '',
+                    total: '',
+                },
+                dropboxQuota: {
+                    free: 'Loading...',
+                    used: '',
+                    total: '',
+                },
 
                 /* backup steps */
                 backupSteps: [{
@@ -620,6 +655,17 @@
                         state: 'pending'
                     },
                 ],
+                cloudConfig: {
+                    provider: 'gdrive',
+
+                    client_id: '',
+                    client_secret: '',
+                    refresh_token: '',
+                    folder_id: '',
+
+                    gdrive_key: '',
+                    gdrive_folder: '',
+                },
 
                 /* schedule */
                 schedule: {
@@ -666,6 +712,8 @@
                     schedule: '{{ route('pos.backup.schedule') }}',
                     cloud: '{{ route('pos.backup.cloud') }}',
                     cloudTest: '{{ route('pos.backup.cloud.test') }}',
+                    quota: '{{ route('pos.backup.cloud.quota') }}',
+                    dropboxQuota: '{{ route('pos.backup.dropbox.quota') }}',
                     csrf: document.querySelector('meta[name=csrf-token]').content,
                 },
 
@@ -674,7 +722,10 @@
                     await this.loadStatus();
                     await this.loadBackups();
                     this.loadSchedule();
+                    this.loadCloudQuota();
+                    await this.loadDropboxQuota();
                 },
+
 
                 async refreshAll() {
                     this.refreshing = true;
@@ -692,11 +743,57 @@
                                 'X-Requested-With': 'XMLHttpRequest'
                             }
                         });
+
                         const d = await r.json();
+
                         this.status = d.status;
+
                         this.syncTables = d.sync_tables;
+
+                        this.cloudConfig = {
+                            ...this.cloudConfig,
+                            ...d.cloud
+                        };
+
                     } catch (e) {
                         this.addLog('error', 'Failed to load status: ' + e.message);
+                    }
+                },
+
+                async loadCloudQuota() {
+
+                    try {
+
+                        const r = await fetch(this.urls.quota);
+
+                        const d = await r.json();
+
+                        if (d.success) {
+
+                            this.cloudQuota = d;
+
+                        }
+
+                    } catch (e) {
+
+                        console.error(e);
+
+                    }
+                },
+                async loadDropboxQuota() {
+
+                    try {
+
+                        const r = await fetch(this.urls.dropboxQuota);
+
+                        const d = await r.json();
+
+                        if (d.success) {
+                            this.dropboxQuota = d;
+                        }
+
+                    } catch (e) {
+                        console.error(e);
                     }
                 },
 

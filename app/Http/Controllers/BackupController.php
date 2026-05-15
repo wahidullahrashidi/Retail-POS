@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Artisan;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Http;
 
 class BackupController extends Controller
 {
@@ -26,59 +27,90 @@ class BackupController extends Controller
     // ══════════════════════════════════════════
     public function status()
     {
-        // ── Disk info ──────────────────────────
-        $backupPath  = storage_path('app/Afghan POS');
-        $diskTotal   = disk_total_space(storage_path());
-        $diskFree    = disk_free_space(storage_path());
-        $diskUsed    = $diskTotal - $diskFree;
-        $diskPct     = $diskTotal > 0 ? round(($diskUsed / $diskTotal) * 100) : 0;
+        $disk = Storage::disk('google');
 
-        // ── Backup folder size ─────────────────
-        $backupFolderSize = 0;
-        if (is_dir($backupPath)) {
-            foreach (new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($backupPath)) as $file) {
-                if ($file->isFile()) $backupFolderSize += $file->getSize();
-            }
-        }
+        // local backup folder
+        $backupPath = storage_path('app/private/Afghan POS');
 
-        // ── Last backup ────────────────────────
-        $lastBackup     = null;
-        $lastBackupSize = null;
-        if (is_dir($backupPath)) {
-            $files = glob($backupPath . '/*.zip');
-            if ($files) {
-                usort($files, fn($a, $b) => filemtime($b) - filemtime($a));
-                $lastBackup     = Carbon::createFromTimestamp(filemtime($files[0]))->diffForHumans();
-                $lastBackupSize = $this->formatBytes(filesize($files[0]));
-            }
-        }
+        $files = collect(glob($backupPath . '/*.zip'))
+            ->sortDesc();
 
-        // ── Sync pending counts ────────────────
-        $syncTables = $this->getSyncTables();
-        $totalPending = collect($syncTables)->sum('pending');
+        $last = $files->first();
 
-        // ── Cloud status ───────────────────────
-        $cloudEnabled  = config('filesystems.default') === 'cloud' || !empty(config('filesystems.disks.s3.key'));
-        $cloudProvider = $this->detectCloudProvider();
+        // disk usage
+        $total = disk_total_space(base_path());
+        $free  = disk_free_space(base_path());
+        $used  = $total - $free;
 
         return response()->json([
+
             'status' => [
-                'last_backup'        => $lastBackup,
-                'last_backup_size'   => $lastBackupSize,
-                'disk_total'         => $this->formatBytes($diskTotal),
-                'disk_used'          => $this->formatBytes($diskUsed),
-                'disk_free'          => $this->formatBytes($diskFree),
-                'disk_pct'           => $diskPct,
-                'backup_folder_size' => $this->formatBytes($backupFolderSize),
-                'backup_path'        => 'storage/app/Afghan POS',
-                'db_name'            => config('database.connections.mysql.database'),
-                'cloud_enabled'      => $cloudEnabled,
-                'cloud_status'       => $cloudEnabled ? 'Connected' : 'Not configured',
-                'cloud_provider'     => $cloudProvider,
-                'encrypted'          => config('backup.backup.password') !== null,
-                'total_pending'      => $totalPending,
+
+                'last_backup' => $last
+                    ? date('y-m-d h:i A', filemtime($last))
+                    : null,
+
+                'last_backup_size' => $last
+                    ? round(filesize($last) / 1024 / 1024, 2) . ' MB'
+                    : null,
+
+                'cloud_status' => 'Connected',
+
+                'cloud_enabled' => true,
+
+                'cloud_provider' => 'Google Drive',
+                'total_pending' =>
+                \App\Models\Sale::where('sync_status', 'pending')->count()
+                    +
+                    \App\Models\Purchase::where('sync_status', 'pending')->count(),
+
+                'disk_used' => round($used / 1024 / 1024 / 1024, 2) . ' GB',
+
+                'disk_total' => round($total / 1024 / 1024 / 1024, 2) . ' GB',
+
+                'disk_pct' => round(($used / $total) * 100),
+
+                'backup_folder_size' => round(
+                    collect(Storage::files('backups'))
+                        ->sum(fn($f) => Storage::size($f))
+                        / 1024 / 1024,
+                    2
+                ) . ' MB',
+
+                'db_name' => env('DB_DATABASE'),
+
+                'backup_path' => 'storage/app/backups',
+
+                'encrypted' => false,
             ],
-            'sync_tables' => $syncTables,
+
+            'sync_tables' => [
+                [
+                    'name' => 'sales',
+                    'label' => 'Sales',
+                    'icon' => 'fas fa-cart-shopping',
+                    'color' => '#2563eb',
+                    'total' => \App\Models\Sale::count(),
+                    'pending' => \App\Models\Sale::where('sync_status', 'pending')->count(),
+                    'failed' => \App\Models\Sale::where('sync_status', 'failed')->count(),
+                ],
+
+                [
+                    'name' => 'purchases',
+                    'label' => 'Purchases',
+                    'icon' => 'fas fa-box',
+                    'color' => '#16a34a',
+                    'total' => \App\Models\Purchase::count(),
+                    'pending' => \App\Models\Purchase::where('sync_status', 'pending')->count(),
+                    'failed' => \App\Models\Purchase::where('sync_status', 'failed')->count(),
+                ],
+            ],
+            'cloud' => [
+                'client_id' => env('GOOGLE_DRIVE_CLIENT_ID'),
+                'client_secret' => env('GOOGLE_DRIVE_CLIENT_SECRET'),
+                'refresh_token' => env('GOOGLE_DRIVE_REFRESH_TOKEN'),
+                'folder_id' => env('GOOGLE_DRIVE_FOLDER_ID'),
+            ]
         ]);
     }
 
@@ -88,21 +120,44 @@ class BackupController extends Controller
     // ══════════════════════════════════════════
     public function list()
     {
-        $backupPath = storage_path('app/Afghan POS');
-        $backups    = [];
+        $backupPath = storage_path('app/private/Afghan POS');
+        $backups = [];
 
         if (is_dir($backupPath)) {
+
             $files = glob($backupPath . '/*.zip');
+
             if ($files) {
+
                 usort($files, fn($a, $b) => filemtime($b) - filemtime($a));
+
+                // selected cloud provider
+                $provider = env('FILESYSTEM_CLOUD', 'google');
+
                 foreach ($files as $file) {
+
+                    $filename = basename($file);
+
+                    // check if file exists in cloud
+                    $inCloud = false;
+
+                    try {
+                        if (in_array($provider, ['google', 'dropbox'])) {
+                            $inCloud = Storage::disk($provider)->exists($filename);
+                        }
+                    } catch (\Exception $e) {
+                        $inCloud = false;
+                    }
+
                     $backups[] = [
-                        'name'       => basename($file),
+                        'name'       => $filename,
                         'path'       => $file,
                         'size'       => $this->formatBytes(filesize($file)),
                         'size_bytes' => filesize($file),
-                        'created_at' => Carbon::createFromTimestamp(filemtime($file))->format('d M Y H:i'),
-                        'cloud'      => false, // mark as true if also uploaded to cloud
+                        'created_at' => Carbon::createFromTimestamp(
+                            filemtime($file)
+                        )->format('d M Y h:i A'),
+                        'cloud'      => $inCloud,
                     ];
                 }
             }
@@ -118,34 +173,59 @@ class BackupController extends Controller
     public function run()
     {
         try {
-            // Uses spatie/laravel-backup under the hood
-            // Make sure you have run: php artisan vendor:publish --provider="Spatie\Backup\BackupServiceProvider"
-            // and configured config/backup.php
-            Artisan::call('backup:run', ['--only-db' => true]);
+
+            // Create backup
+            Artisan::call('backup:run', [
+                '--only-db' => true
+            ]);
 
             $output = Artisan::output();
 
-            // Get the latest backup file info
-            $backupPath = storage_path('app/Afghan POS');
-            $files      = is_dir($backupPath) ? glob($backupPath . '/*.zip') : [];
+            // Local backup folder
+            $backupPath = storage_path('app/private/Afghan POS');
+
+            $files = is_dir($backupPath)
+                ? glob($backupPath . '/*.zip')
+                : [];
 
             $filename = '';
-            $size     = '—';
+            $size = '—';
 
             if ($files) {
+
+                // latest file first
                 usort($files, fn($a, $b) => filemtime($b) - filemtime($a));
-                $latest   = $files[0];
+
+                $latest = $files[0];
+
                 $filename = basename($latest);
-                $size     = $this->formatBytes(filesize($latest));
+
+                // get selected cloud provider
+                $provider = env('FILESYSTEM_CLOUD', 'google');
+
+                // upload if provider configured
+                if (in_array($provider, ['google', 'dropbox', 'ftp'])) {
+
+                    Storage::disk($provider)->write(
+                        $filename,
+                        file_get_contents($latest)
+                    );
+                }
+
+                $size = $this->formatBytes(
+                    filesize($latest)
+                );
             }
 
             return response()->json([
-                'success'  => true,
+                'success' => true,
                 'filename' => $filename,
-                'size'     => $size,
-                'output'   => $output,
+                'size' => $size,
+                'provider' => ucfirst($provider),
+                'output' => $output,
             ]);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
+
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage(),
@@ -479,16 +559,28 @@ class BackupController extends Controller
         rmdir($dir);
     }
 
+    // private function testGdrive(): void
+    // {
+    //     // Test Google Drive connectivity
+    //     // Requires spatie/flysystem-google-drive or similar
+    //     // For now just check if config file exists
+    //     $path = storage_path('app/cloud_config.json');
+    //     if (!file_exists($path)) throw new \Exception('Google Drive not configured.');
+    //     $config = json_decode(file_get_contents($path), true);
+    //     if (empty($config['gdrive_key'])) throw new \Exception('Service account key path not set.');
+    //     if (!file_exists(base_path($config['gdrive_key']))) throw new \Exception('Service account JSON file not found.');
+    // }
     private function testGdrive(): void
     {
-        // Test Google Drive connectivity
-        // Requires spatie/flysystem-google-drive or similar
-        // For now just check if config file exists
-        $path = storage_path('app/cloud_config.json');
-        if (!file_exists($path)) throw new \Exception('Google Drive not configured.');
-        $config = json_decode(file_get_contents($path), true);
-        if (empty($config['gdrive_key'])) throw new \Exception('Service account key path not set.');
-        if (!file_exists(base_path($config['gdrive_key']))) throw new \Exception('Service account JSON file not found.');
+        try {
+
+            Storage::disk('google')->write(
+                'connection-test.txt',
+                'Google Drive connected'
+            );
+        } catch (\Throwable $e) {
+            throw new \Exception($e->getMessage());
+        }
     }
 
     private function testDropbox(): void
@@ -535,5 +627,89 @@ class BackupController extends Controller
         ftp_close($conn);
 
         if (!$login) throw new \Exception('FTP login failed. Check username and password.');
+    }
+    public function cloudQuota()
+    {
+        try {
+
+            $disk = Storage::disk('google');
+
+            $reflection = new \ReflectionClass($disk);
+
+            $adapterProperty = $reflection->getProperty('adapter');
+
+            $adapterProperty->setAccessible(true);
+
+            $adapter = $adapterProperty->getValue($disk);
+
+            $service = $adapter->getService();
+
+            $about = $service->about->get([
+                'fields' => 'storageQuota'
+            ]);
+
+            $quota = $about->storageQuota;
+
+            $total = (int) $quota->limit;
+            $used  = (int) $quota->usage;
+
+            return response()->json([
+                'success' => true,
+                'total'   => $this->formatBytes($total),
+                'used'    => $this->formatBytes($used),
+                'free'    => $this->formatBytes($total - $used),
+            ]);
+        } catch (\Exception $e) {
+
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function dropboxQuota()
+    {
+        try {
+
+            $token = config('filesystems.disks.dropbox.authorization_token');
+
+            $response = Http::withHeaders([
+                'Authorization' => 'Bearer ' . $token,
+            ])->send(
+                'POST',
+                'https://api.dropboxapi.com/2/users/get_space_usage'
+            );
+
+            $space = $response->json();
+
+            $used = $space['used'] ?? 0;
+
+            $total = 0;
+
+            if (isset($space['allocation']['allocated'])) {
+
+                $total = $space['allocation']['allocated'];
+            } elseif (isset($space['allocation']['individual']['allocated'])) {
+
+                $total = $space['allocation']['individual']['allocated'];
+            } elseif (isset($space['allocation']['team']['allocated'])) {
+
+                $total = $space['allocation']['team']['allocated'];
+            }
+
+            return response()->json([
+                'success' => true,
+                'total' => $this->formatBytes($total),
+                'used' => $this->formatBytes($used),
+                'free' => $this->formatBytes($total - $used),
+            ]);
+        } catch (\Throwable $e) {
+
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ]);
+        }
     }
 }

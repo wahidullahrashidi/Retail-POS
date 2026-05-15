@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
+use Illuminate\Support\Str;
 
 class UserController extends Controller
 {
@@ -47,12 +48,16 @@ class UserController extends Controller
             ->leftJoin(
                 DB::raw('(SELECT user_id, COUNT(*) as sale_count, SUM(total_amount) as total_sales
                           FROM sales WHERE status = "completed" GROUP BY user_id) as sa'),
-                'sa.user_id', '=', 'users.id'
+                'sa.user_id',
+                '=',
+                'users.id'
             )
             ->leftJoin(
                 DB::raw('(SELECT user_id, COUNT(*) as shift_count
                           FROM shifts GROUP BY user_id) as sh'),
-                'sh.user_id', '=', 'users.id'
+                'sh.user_id',
+                '=',
+                'users.id'
             )
             ->select([
                 'users.id',
@@ -73,9 +78,10 @@ class UserController extends Controller
 
         // ── Search ──
         if ($q) {
-            $query->where(fn($qb) =>
+            $query->where(
+                fn($qb) =>
                 $qb->where('users.name',  'like', "%{$q}%")
-                   ->orWhere('users.email', 'like', "%{$q}%")
+                    ->orWhere('users.email', 'like', "%{$q}%")
             );
         }
 
@@ -98,8 +104,8 @@ class UserController extends Controller
             'role_name'    => $u->role_name,
             'role_display' => $u->role_display,
             'permissions'  => is_string($u->permissions)
-                              ? json_decode($u->permissions, true)
-                              : ($u->permissions ?? []),
+                ? json_decode($u->permissions, true)
+                : ($u->permissions ?? []),
             'has_pin'      => (bool)$u->has_pin,
             'is_active'    => (bool)$u->is_active,
             'sale_count'   => (int)$u->sale_count,
@@ -136,18 +142,25 @@ class UserController extends Controller
         try {
             $photoPath = null;
 
-            // ── Handle photo upload ──────────────
+            // Handle photo upload
             if ($request->hasFile('photo')) {
-                $file      = $request->file('photo');
-                $filename  = 'users/user_' . time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
-                $file->storeAs('public/users', $filename);
-                $photoPath = $filename;
 
-                // Delete old photo if updating
+                $file = $request->file('photo');
+
+                $filename = 'user_' . time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+
+                // Store inside storage/app/public/users
+                $file->storeAs('users', $filename, 'public');
+
+                $photoPath = 'users/' . $filename;
+
+                // Delete old photo
                 if ($isUpdate) {
+
                     $oldUser = User::find($userId);
-                    if ($oldUser?->photo) {
-                        Storage::delete('public/users/' . $oldUser->photo);
+
+                    if ($oldUser && $oldUser->photo) {
+                        Storage::disk('public')->delete($oldUser->photo);
                     }
                 }
             }
@@ -158,9 +171,29 @@ class UserController extends Controller
                 $permissions = json_decode($request->input('permissions'), true) ?? [];
             }
 
+
+            // ── Generate username automatically ──
+
+            // Take first word from full name
+            $firstName = strtok($request->name, ' ');
+
+            // Clean username
+            $baseUsername = Str::lower(preg_replace('/[^a-zA-Z0-9]/', '', $firstName));
+
+            // Find existing similar usernames
+            $existingCount = User::where('username', 'LIKE', $baseUsername . '%')
+                ->when($isUpdate, function ($query) use ($userId) {
+                    $query->where('id', '!=', $userId);
+                })
+                ->count();
+
+            // Generate final username
+            $username = $baseUsername . ($existingCount + 1);
+
             // ── Prepare fields ───────────────────
             $fields = [
                 'name'        => $request->name,
+                'username'    => $username,
                 'email'       => $request->email,
                 'role_id'     => $request->role_id,
                 'permissions' => json_encode($permissions),
@@ -191,7 +224,6 @@ class UserController extends Controller
                     'is_active'    => $user->is_active,
                 ],
             ]);
-
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json(['success' => false, 'message' => $e->getMessage()], 422);

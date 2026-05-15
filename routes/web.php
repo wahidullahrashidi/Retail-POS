@@ -136,7 +136,8 @@ Route::middleware('auth')->group(function () {
         Route::post('/backup/schedule',    [BackupController::class, 'saveSchedule'])->name('backup.schedule');
         Route::post('/backup/cloud',       [BackupController::class, 'saveCloud'])->name('backup.cloud');
         Route::post('/backup/cloud/test',  [BackupController::class, 'testCloud'])->name('backup.cloud.test');
-
+        Route::get('/backup/cloud/quota',  [BackupController::class, 'cloudQuota'])->name('backup.cloud.quota');
+        Route::get('/backup/dropbox/quota',[BackupController::class, 'dropboxQuota'])->name('backup.dropbox.quota');
         // ── Users ──────────────────────────────────────────────
 
         Route::get('/users/page',              [UserController::class, 'page'])->name('users.page');
