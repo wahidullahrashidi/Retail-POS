@@ -1164,3 +1164,64 @@
             flex-shrink: 0;
             margin-top: 1px;
         }
+
+        /* RTL Table Styles for Sales Table (sl-table) */
+.rtl-table {
+    direction: rtl;
+}
+
+.rtl-table th,
+.rtl-table td {
+    text-align: right;
+}
+
+/* Override cell-right for RTL */
+.rtl-table th.cell-right,
+.rtl-table td.cell-right {
+    text-align: left !important;
+}
+
+/* Fix sale-id and amount cells */
+.rtl-table .sale-id,
+.rtl-table .sale-amt {
+    direction: ltr;
+    display: inline-block;
+}
+
+/* Fix date/time and customer display */
+.rtl-table .sale-time,
+.rtl-table .sale-cust,
+.rtl-table .sale-cust-sub {
+    text-align: right;
+}
+
+/* Fix pills */
+.rtl-table .pill {
+    display: inline-block;
+}
+
+/* Fix row actions buttons */
+.rtl-table .row-acts {
+    display: flex;
+    flex-direction: row-reverse;
+    gap: 0.375rem;
+}
+
+.rtl-table .row-acts button {
+    margin: 0;
+}
+
+/* Fix sort icons position */
+.rtl-table th i.fa-sort {
+    margin-right: 5px;
+    margin-left: 0;
+}
+
+/* Fix pagination */
+.rtl-table + .pag-row .pag-info {
+    text-align: right;
+}
+
+.rtl-table + .pag-row .pag-btns {
+    flex-direction: row-reverse;
+}

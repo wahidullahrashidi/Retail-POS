@@ -1,7 +1,9 @@
 @extends('layouts.app')
 
 @push('styles')
-    @vite(['resources/css/pages/inventory.css'])
+    @if (file_exists(public_path('build/manifest.json')) || file_exists(public_path('hot')))
+        @vite(['resources/css/pages/inventory.css'])
+    @endif
 @endpush
 
 @section('content')
@@ -10,17 +12,18 @@
         {{-- ════ TOPBAR ════ --}}
         <div class="inv-top">
             <div style="display:flex;align-items:center;gap:10px">
-                <div class="inv-title">Afghan POS — <em>Inventory</em></div>
+                <div class="st-title">Afghan <em>POS</em> — {{ __('messages.inventory') }}</div>
+                {{-- <div class="inv-title">{{ __('messages.afghan_pos') }} — <em>{{ __('messages.inventory') }}</em></div> --}}
             </div>
             <div class="top-actions">
                 <button class="btn btn-ghost" @click="showPurchaseDrawer=true">
-                    <i class="fas fa-truck"></i> New Purchase Order
+                    <i class="fas fa-truck"></i> {{ __('messages.new_purchase_order') }}
                 </button>
                 <button class="btn btn-ghost" @click="showAdjustModal=true">
-                    <i class="fas fa-sliders"></i> Adjust Stock
+                    <i class="fas fa-sliders"></i> {{ __('messages.adjust_stock') }}
                 </button>
                 <button class="btn btn-primary" @click="showProductModal=true; editingProduct=null; resetProductForm()">
-                    <i class="fas fa-plus"></i> Add Product
+                    <i class="fas fa-plus"></i> {{ __('messages.add_product') }}
                 </button>
             </div>
         </div>
@@ -28,34 +31,34 @@
         {{-- ════ STAT STRIP ════ --}}
         <div class="stat-strip">
             <div class="stat-tile" style="--accent:var(--blue)">
-                <div class="st-label">Total Products <span class="st-icon" style="color:var(--blue)"><i
+                <div class="st-label">{{ __('messages.total_products') }} <span class="st-icon" style="color:var(--blue)"><i
                             class="fas fa-boxes-stacked"></i></span></div>
                 <div class="st-val">{{ number_format($totalProducts ?? 0) }}</div>
-                <div class="st-sub">{{ $activeProducts ?? 0 }} active variants</div>
+                <div class="st-sub">{{ $activeProducts ?? 0 }} {{ __('messages.active_variants') }}</div>
             </div>
             <div class="stat-tile" style="--accent:var(--red)">
-                <div class="st-label">Low Stock <span class="st-icon" style="color:var(--red)"><i
+                <div class="st-label">{{ __('messages.low_stock') }} <span class="st-icon" style="color:var(--red)"><i
                             class="fas fa-triangle-exclamation"></i></span></div>
                 <div class="st-val" style="color:var(--red)">{{ $lowStockCount ?? 0 }}</div>
-                <div class="st-sub">below threshold</div>
+                <div class="st-sub">{{ __('messages.below_threshold') }}</div>
             </div>
             <div class="stat-tile" style="--accent:var(--amber)">
-                <div class="st-label">Expiring Soon <span class="st-icon" style="color:var(--amber)"><i
-                            class="fas fa-clock"></i></span></div>
+                <div class="st-label">{{ __('messages.expiring_soon') }} <span class="st-icon"
+                        style="color:var(--amber)"><i class="fas fa-clock"></i></span></div>
                 <div class="st-val" style="color:var(--amber)">{{ $expiringSoon ?? 0 }}</div>
-                <div class="st-sub">within 30 days</div>
+                <div class="st-sub">{{ __('messages.within_30_days') }}</div>
             </div>
             <div class="stat-tile" style="--accent:var(--green)">
-                <div class="st-label">Inventory Value <span class="st-icon" style="color:var(--green)"><i
-                            class="fas fa-coins"></i></span></div>
+                <div class="st-label">{{ __('messages.inventory_value') }} <span class="st-icon"
+                        style="color:var(--green)"><i class="fas fa-coins"></i></span></div>
                 <div class="st-val" style="font-size:18px">Af {{ number_format($inventoryValue ?? 0) }}</div>
-                <div class="st-sub">at cost price</div>
+                <div class="st-sub">{{ __('messages.at_cost_price') }}</div>
             </div>
             <div class="stat-tile" style="--accent:var(--teal)">
-                <div class="st-label">Categories <span class="st-icon" style="color:var(--teal)"><i
+                <div class="st-label">{{ __('messages.categories') }} <span class="st-icon" style="color:var(--teal)"><i
                             class="fas fa-tag"></i></span></div>
                 <div class="st-val">{{ $categoryCount ?? 0 }}</div>
-                <div class="st-sub">active categories</div>
+                <div class="st-sub">{{ __('messages.active_categories') }}</div>
             </div>
         </div>
 
@@ -63,15 +66,17 @@
         @if (($lowStockCount ?? 0) > 0)
             <div class="alert-bar danger">
                 <i class="fas fa-circle-exclamation"></i>
-                <span><strong>{{ $lowStockCount }} variants</strong> are below their minimum stock threshold. <a
-                        @click="filterTab='low_stock'">View them →</a></span>
+                <span><strong>{{ $lowStockCount }} {{ __('messages.variants') }}</strong>
+                    {{ __('messages.below_minimum_stock') }}. <a
+                        @click="filterTab='low_stock'">{{ __('messages.view_them') }} →</a></span>
             </div>
         @endif
         @if (($expiringSoon ?? 0) > 0)
             <div class="alert-bar warn">
                 <i class="fas fa-clock"></i>
-                <span><strong>{{ $expiringSoon }} variants</strong> expire within 30 days. <a
-                        @click="filterTab='expiring'">View them →</a></span>
+                <span><strong>{{ $expiringSoon }} {{ __('messages.variants') }}</strong>
+                    {{ __('messages.expire_within_30_days') }}. <a
+                        @click="filterTab='expiring'">{{ __('messages.view_them') }} →</a></span>
             </div>
         @endif
 
@@ -79,32 +84,33 @@
         <div class="inv-toolbar">
             <div class="search-box">
                 <i class="fas fa-search"></i>
-                <input class="inv-search" type="text" x-model="search" @input.debounce.350ms="loadProducts()"
-                    placeholder="Search name, SKU, barcode…">
+                <input class="inv-search" type="search" autocomplete="off" autocapitalize="off" spellcheck="false"
+                    x-model="search" @input.debounce.350ms="loadProducts()"
+                    placeholder="{{ __('messages.search_name_sku_barcode') }}">
             </div>
 
             <select class="filter-select" x-model="filterCategory" @change="loadProducts()">
-                <option value="">All Categories</option>
+                <option value="">{{ __('messages.all_categories') }}</option>
                 @foreach ($categories ?? [] as $cat)
                     <option value="{{ $cat->id }}">{{ $cat->name }}</option>
                 @endforeach
             </select>
 
             <select class="filter-select" x-model="filterSupplier" @change="loadProducts()">
-                <option value="">All Suppliers</option>
+                <option value="">{{ __('messages.all_suppliers') }}</option>
                 @foreach ($suppliers ?? [] as $sup)
                     <option value="{{ $sup->id }}">{{ $sup->name }}</option>
                 @endforeach
             </select>
 
             <select class="filter-select" x-model="filterStock" @change="loadProducts()">
-                <option value="">All Stock</option>
-                <option value="ok">In Stock</option>
-                <option value="low">Low Stock</option>
-                <option value="zero">Out of Stock</option>
+                <option value="">{{ __('messages.all_stock') }}</option>
+                <option value="ok">{{ __('messages.in_stock') }}</option>
+                <option value="low">{{ __('messages.low_stock') }}</option>
+                <option value="zero">{{ __('messages.out_of_stock') }}</option>
             </select>
 
-         
+
             <div class="view-toggle">
                 <button type="button" class="vt-btn" :class="viewMode === 'table' ? 'active' : ''"
                     @click="viewMode='table'">
@@ -118,13 +124,13 @@
 
             <div class="tab-row">
                 <button type="button" class="tab-btn" :class="filterTab === 'all' ? 'active' : ''"
-                    @click="filterTab='all';loadProducts()">All</button>
+                    @click="filterTab='all';loadProducts()">{{ __('messages.all') }}</button>
                 <button type="button" class="tab-btn" :class="filterTab === 'low_stock' ? 'active' : ''"
-                    @click="filterTab='low_stock';loadProducts()">Low Stock</button>
+                    @click="filterTab='low_stock';loadProducts()">{{ __('messages.low_stock') }}</button>
                 <button type="button" class="tab-btn" :class="filterTab === 'expiring' ? 'active' : ''"
-                    @click="filterTab='expiring';loadProducts()">Expiring</button>
+                    @click="filterTab='expiring';loadProducts()">{{ __('messages.expiring') }}</button>
                 <button type="button" class="tab-btn" :class="filterTab === 'inactive' ? 'active' : ''"
-                    @click="filterTab='inactive';loadProducts()">Inactive</button>
+                    @click="filterTab='inactive';loadProducts()">{{ __('messages.inactive') }}</button>
             </div>
         </div>
 
@@ -140,21 +146,23 @@
                     {{-- Empty --}}
                     <div class="empty-state" x-show="products.length===0">
                         <i class="fas fa-box-open"></i>
-                        <p>No products found.<br>Try a different search or filter.</p>
+                        <p>{{ __('messages.no_products_found') }}<br>{{ __('messages.try_different_search') }}</p>
                     </div>
-
-                    <table class="inv-table" x-show="products.length>0">
+                    <table class="inv-table {{ in_array(app()->getLocale(), ['ps', 'dr']) ? 'rtl-table' : '' }}"
+                        x-show="products.length>0">
                         <thead>
                             <tr>
-                                <th @click="sortBy('name')">Product <i class="fas fa-sort"></i></th>
+                                <th @click="sortBy('name')">{{ __('messages.product') }} <i class="fas fa-sort"></i></th>
                                 <th @click="sortBy('sku')">SKU <i class="fas fa-sort"></i></th>
-                                <th @click="sortBy('category')">Category</th>
-                                <th @click="sortBy('price')" class="text-right">Sale Price <i class="fas fa-sort"></i>
-                                </th>
-                                <th @click="sortBy('cost')" class="text-right">Cost <i class="fas fa-sort"></i></th>
-                                <th @click="sortBy('stock')" class="text-center">Stock <i class="fas fa-sort"></i></th>
-                                <th class="text-center">Expiry</th>
-                                <th class="text-center">Status</th>
+                                <th @click="sortBy('category')">{{ __('messages.category') }}</th>
+                                <th @click="sortBy('price')" class="text-right">{{ __('messages.sale_price') }} <i
+                                        class="fas fa-sort"></i></th>
+                                <th @click="sortBy('cost')" class="text-right">{{ __('messages.cost') }} <i
+                                        class="fas fa-sort"></i></th>
+                                <th @click="sortBy('stock')" class="text-center">{{ __('messages.stock') }} <i
+                                        class="fas fa-sort"></i></th>
+                                <th class="text-center">{{ __('messages.expiry') }}</th>
+                                <th class="text-center">{{ __('messages.status') }}</th>
                                 <th></th>
                             </tr>
                         </thead>
@@ -178,7 +186,7 @@
                                         <span class="stock-badge"
                                             :class="p.stock_quantity === 0 ? 'stock-zero' : p.stock_quantity <= p.threshold ?
                                                 'stock-low' : 'stock-ok'"
-                                            x-text="p.stock_quantity + ' ' + (p.unit||'pcs')">
+                                            x-text="p.stock_quantity + ' ' + (p.unit||'{{ __('messages.pcs') }}')">
                                         </span>
                                     </td>
                                     <td class="text-center">
@@ -190,20 +198,20 @@
                                     </td>
                                     <td class="text-center">
                                         <span class="pill" :class="p.is_active ? 'pill-green' : 'pill-red'"
-                                            x-text="p.is_active?'Active':'Inactive'"></span>
+                                            x-text="p.is_active?'{{ __('messages.active') }}':'{{ __('messages.inactive') }}'"></span>
                                     </td>
                                     <td>
                                         <div class="row-actions">
-                                            <button type="button" class="btn btn-ghost btn-sm" title="Edit"
-                                                @click="editProduct(p)">
+                                            <button type="button" class="btn btn-ghost btn-sm"
+                                                title="{{ __('messages.edit') }}" @click="editProduct(p)">
                                                 <i class="fas fa-pen"></i>
                                             </button>
-                                            <button type="button" class="btn btn-amber btn-sm" title="Adjust Stock"
-                                                @click="openAdjust(p)">
+                                            <button type="button" class="btn btn-amber btn-sm"
+                                                title="{{ __('messages.adjust_stock') }}" @click="openAdjust(p)">
                                                 <i class="fas fa-sliders"></i>
                                             </button>
-                                            <button type="button" class="btn btn-danger btn-sm" title="Deactivate"
-                                                @click="toggleActive(p)">
+                                            <button type="button" class="btn btn-danger btn-sm"
+                                                title="{{ __('messages.deactivate') }}" @click="toggleActive(p)">
                                                 <i class="fas fa-power-off"></i>
                                             </button>
                                         </div>
@@ -212,14 +220,85 @@
                             </template>
                         </tbody>
                     </table>
+
+                    {{-- <table class="inv-table" x-show="products.length>0">
+                        <thead>
+                            <tr>
+                                <th @click="sortBy('name')">{{ __('messages.product') }} <i class="fas fa-sort"></i></th>
+                                <th @click="sortBy('sku')">SKU <i class="fas fa-sort"></i></th>
+                                <th @click="sortBy('category')">{{ __('messages.category') }}</th>
+                                <th @click="sortBy('price')" class="text-right">{{ __('messages.sale_price') }} <i class="fas fa-sort"></i>
+                                </th>
+                                <th @click="sortBy('cost')" class="text-right">{{ __('messages.cost') }} <i class="fas fa-sort"></i></th>
+                                <th @click="sortBy('stock')" class="text-center">{{ __('messages.stock') }} <i class="fas fa-sort"></i></th>
+                                <th class="text-center">{{ __('messages.expiry') }}</th>
+                                <th class="text-center">{{ __('messages.status') }}</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <template x-for="p in products" :key="p.variant_id">
+                                <tr>
+                                    <td>
+                                        <div class="cell-product">
+                                            <div class="prod-thumb" x-text="p.emoji || '📦'"></div>
+                                            <div>
+                                                <div class="prod-name" x-text="p.name"></div>
+                                                <div class="prod-sku" x-text="p.barcode"></div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="cell-mono" x-text="p.sku"></td>
+                                    <td><span class="pill pill-teal" x-text="p.category"></span></td>
+                                    <td class="text-right cell-price">Af <span x-text="fmt(p.price)"></span></td>
+                                    <td class="text-right cell-cost">Af <span x-text="fmt(p.cost_price)"></span></td>
+                                    <td class="text-center">
+                                        <span class="stock-badge"
+                                            :class="p.stock_quantity === 0 ? 'stock-zero' : p.stock_quantity <= p.threshold ?
+                                                'stock-low' : 'stock-ok'"
+                                            x-text="p.stock_quantity + ' ' + (p.unit||'{{ __('messages.pcs') }}')">
+                                        </span>
+                                    </td>
+                                    <td class="text-center">
+                                        <span x-show="!p.expiry_date" class="expiry-ok">—</span>
+                                        <span x-show="p.expiry_date"
+                                            :class="p.days_to_expiry < 0 ? 'expiry-due' : p.days_to_expiry <= 30 ?
+                                                'expiry-warn' : 'expiry-ok'"
+                                            x-text="p.expiry_date"></span>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="pill" :class="p.is_active ? 'pill-green' : 'pill-red'"
+                                            x-text="p.is_active?'{{ __('messages.active') }}':'{{ __('messages.inactive') }}'"></span>
+                                    </td>
+                                    <td>
+                                        <div class="row-actions">
+                                            <button type="button" class="btn btn-ghost btn-sm" title="{{ __('messages.edit') }}"
+                                                @click="editProduct(p)">
+                                                <i class="fas fa-pen"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-amber btn-sm" title="{{ __('messages.adjust_stock') }}"
+                                                @click="openAdjust(p)">
+                                                <i class="fas fa-sliders"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-danger btn-sm" title="{{ __('messages.deactivate') }}"
+                                                @click="toggleActive(p)">
+                                                <i class="fas fa-power-off"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table> --}}
                 </div>
             </div>
 
             {{-- Pagination --}}
             <div class="pag-wrap" x-show="pagination.last_page > 1">
                 <div class="pag-info">
-                    Showing <span x-text="pagination.from"></span>–<span x-text="pagination.to"></span>
-                    of <span x-text="pagination.total"></span> variants
+                    {{ __('messages.showing') }} <span x-text="pagination.from"></span>–<span
+                        x-text="pagination.to"></span>
+                    {{ __('messages.of') }} <span x-text="pagination.total"></span> {{ __('messages.variants') }}
                 </div>
                 <div class="pag-btns">
                     <button class="pag-btn" @click="goPage(pagination.current_page-1)"
@@ -242,7 +321,7 @@
         <div class="grid-wrap" x-show="viewMode==='grid'" x-cloak>
             <div class="empty-state" x-show="products.length===0" style="grid-column:1/-1">
                 <i class="fas fa-box-open"></i>
-                <p>No products found.</p>
+                <p>{{ __('messages.no_products_found') }}</p>
             </div>
             <template x-for="p in products" :key="p.variant_id">
                 <div class="grid-card">
@@ -257,21 +336,21 @@
                         <div class="gc-name" x-text="p.name"></div>
                         <div class="gc-sku" x-text="p.sku"></div>
                         <div class="gc-row">
-                            <span class="gc-label">Price</span>
+                            <span class="gc-label">{{ __('messages.price') }}</span>
                             <span class="gc-val" style="color:var(--blue)">Af <span x-text="fmt(p.price)"></span></span>
                         </div>
                         <div class="gc-row">
-                            <span class="gc-label">Cost</span>
+                            <span class="gc-label">{{ __('messages.cost') }}</span>
                             <span class="gc-val">Af <span x-text="fmt(p.cost_price)"></span></span>
                         </div>
                         <div class="gc-row">
-                            <span class="gc-label">Category</span>
+                            <span class="gc-label">{{ __('messages.category') }}</span>
                             <span class="pill pill-teal" x-text="p.category"></span>
                         </div>
                     </div>
                     <div class="gc-footer">
                         <button type="button" class="btn btn-ghost btn-sm" style="flex:1" @click="editProduct(p)">
-                            <i class="fas fa-pen"></i> Edit
+                            <i class="fas fa-pen"></i> {{ __('messages.edit') }}
                         </button>
                         <button type="button" class="btn btn-amber btn-sm" @click="openAdjust(p)">
                             <i class="fas fa-sliders"></i>
@@ -287,101 +366,110 @@
         <div class="modal-overlay" x-show="showProductModal" x-cloak @click.self="showProductModal=false">
             <div class="modal-card modal-lg">
                 <div class="modal-head">
-                    <div class="modal-title" x-text="editingProduct ? 'Edit Product Variant' : 'Add New Product'"></div>
+                    <div class="modal-title"
+                        x-text="editingProduct ? '{{ __('messages.edit_product_variant') }}' : '{{ __('messages.add_new_product') }}'">
+                    </div>
                     <button class="modal-close" @click="showProductModal=false"><i class="fas fa-times"></i></button>
                 </div>
                 <div class="modal-body">
 
                     {{-- Basic Info --}}
                     <div class="form-section">
-                        <div class="form-section-title"><i class="fas fa-info-circle"></i> Basic Information</div>
+                        <div class="form-section-title"><i class="fas fa-info-circle"></i>
+                            {{ __('messages.basic_information') }}</div>
                         <div class="form-grid form-grid-2">
                             <div>
-                                <label class="field-label">Product Name (English) <span class="field-req">*</span></label>
+                                <label class="field-label">{{ __('messages.product_name_english') }} <span
+                                        class="field-req">*</span></label>
                                 <input type="text" class="field-input" x-model="pf.name"
-                                    placeholder="e.g. Premium Saffron">
+                                    placeholder="{{ __('messages.e_g_premium_saffron') }}">
                             </div>
                             <div>
-                                <label class="field-label">Category <span class="field-req">*</span></label>
+                                <label class="field-label">{{ __('messages.category') }} <span
+                                        class="field-req">*</span></label>
                                 <select class="field-input" x-model="pf.category_id">
-                                    <option value="">Select category</option>
+                                    <option value="">{{ __('messages.select_category') }}</option>
                                     @foreach ($categories ?? [] as $cat)
                                         <option value="{{ $cat->id }}">{{ $cat->name }}</option>
                                     @endforeach
                                 </select>
                             </div>
                             <div>
-                                <label class="field-label">Name (Pashto / پښتو)</label>
+                                <label class="field-label">{{ __('messages.name_pashto') }}</label>
                                 <input type="text" class="field-input" x-model="pf.name_ps" placeholder="د محصول نوم"
                                     dir="rtl">
                             </div>
                             <div>
-                                <label class="field-label">Name (Dari / دری)</label>
+                                <label class="field-label">{{ __('messages.name_dari') }}</label>
                                 <input type="text" class="field-input" x-model="pf.name_dr" placeholder="نام محصول"
                                     dir="rtl">
                             </div>
                             <div style="grid-column:span 2">
-                                <label class="field-label">Description</label>
-                                <textarea class="field-input" x-model="pf.description" placeholder="Optional product description…"></textarea>
+                                <label class="field-label">{{ __('messages.description') }}</label>
+                                <textarea class="field-input" x-model="pf.description"
+                                    placeholder="{{ __('messages.optional_product_description') }}"></textarea>
                             </div>
                         </div>
                     </div>
 
                     {{-- Variant Info --}}
                     <div class="form-section">
-                        <div class="form-section-title"><i class="fas fa-barcode"></i> Variant & Pricing</div>
+                        <div class="form-section-title"><i class="fas fa-barcode"></i>
+                            {{ __('messages.variant_pricing') }}</div>
                         <div class="form-grid form-grid-3">
                             <div>
                                 <label class="field-label">SKU <span class="field-req">*</span></label>
                                 <input type="text" class="field-input" x-model="pf.sku" placeholder="AUTO-001">
-                                <div class="field-hint">Unique stock keeping unit</div>
+                                <div class="field-hint">{{ __('messages.unique_stock_keeping_unit') }}</div>
                             </div>
                             <div>
-                                <label class="field-label">Barcode <span class="field-req">*</span></label>
+                                <label class="field-label">{{ __('messages.barcode') }} <span
+                                        class="field-req">*</span></label>
                                 <input type="text" class="field-input" x-model="pf.barcode"
                                     placeholder="EAN-13 / QR">
                             </div>
                             <div>
-                                <label class="field-label">Unit</label>
+                                <label class="field-label">{{ __('messages.unit') }}</label>
                                 <select class="field-input" x-model="pf.unit">
-                                    <option value="piece">Piece</option>
-                                    <option value="kg">Kilogram</option>
-                                    <option value="gram">Gram</option>
-                                    <option value="liter">Liter</option>
-                                    <option value="box">Box</option>
-                                    <option value="pack">Pack</option>
-                                    <option value="dozen">Dozen</option>
+                                    <option value="piece">{{ __('messages.piece') }}</option>
+                                    <option value="kg">{{ __('messages.kilogram') }}</option>
+                                    <option value="gram">{{ __('messages.gram') }}</option>
+                                    <option value="liter">{{ __('messages.liter') }}</option>
+                                    <option value="box">{{ __('messages.box') }}</option>
+                                    <option value="pack">{{ __('messages.pack') }}</option>
+                                    <option value="dozen">{{ __('messages.dozen') }}</option>
                                 </select>
                             </div>
                             <div>
-                                <label class="field-label">Sale Price (Af) <span class="field-req">*</span></label>
+                                <label class="field-label">{{ __('messages.sale_price_af') }} <span
+                                        class="field-req">*</span></label>
                                 <input type="number" class="field-input" x-model.number="pf.price" placeholder="0.00"
                                     min="0" step="0.01">
                             </div>
                             <div>
-                                <label class="field-label">Cost Price (Af)</label>
+                                <label class="field-label">{{ __('messages.cost_price_af') }}</label>
                                 <input type="number" class="field-input" x-model.number="pf.cost_price"
                                     placeholder="0.00" min="0" step="0.01">
                             </div>
                             <div>
-                                <label class="field-label">Opening Stock</label>
+                                <label class="field-label">{{ __('messages.opening_stock') }}</label>
                                 <input type="number" class="field-input" x-model.number="pf.stock_quantity"
                                     placeholder="0" min="0">
                             </div>
                             <div>
-                                <label class="field-label">Low Stock Threshold</label>
+                                <label class="field-label">{{ __('messages.low_stock_threshold') }}</label>
                                 <input type="number" class="field-input" x-model.number="pf.low_stock_threshold"
                                     placeholder="10" min="0">
-                                <div class="field-hint">Alert when stock falls below this</div>
+                                <div class="field-hint">{{ __('messages.alert_when_stock_falls_below') }}</div>
                             </div>
                             <div>
-                                <label class="field-label">Expiry Date</label>
+                                <label class="field-label">{{ __('messages.expiry_date') }}</label>
                                 <input type="date" class="field-input" x-model="pf.expiry_date">
                             </div>
                             <div>
-                                <label class="field-label">Batch Number</label>
+                                <label class="field-label">{{ __('messages.batch_number') }}</label>
                                 <input type="text" class="field-input" x-model="pf.batch_number"
-                                    placeholder="e.g. BATCH-2024-01">
+                                    placeholder="{{ __('messages.e_g_batch_2024_01') }}">
                             </div>
                         </div>
                     </div>
@@ -391,13 +479,13 @@
                         style="padding:10px 14px;background:var(--gdim);border:1px solid rgba(21,128,61,.2);border-radius:var(--rsm);margin-bottom:1rem;display:flex;gap:2rem">
                         <div>
                             <div style="font-size:10px;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em">
-                                Margin</div>
+                                {{ __('messages.margin') }}</div>
                             <div style="font-family:var(--mono);font-size:16px;color:var(--green);font-weight:500"
                                 x-text="profitMargin + '%'"></div>
                         </div>
                         <div>
                             <div style="font-size:10px;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em">
-                                Gross Profit / Unit</div>
+                                {{ __('messages.gross_profit_unit') }}</div>
                             <div style="font-family:var(--mono);font-size:16px;color:var(--green);font-weight:500"
                                 x-text="'Af ' + fmt(pf.price - pf.cost_price)"></div>
                         </div>
@@ -409,10 +497,12 @@
                         x-text="formError"></div>
                 </div>
                 <div class="modal-foot">
-                    <button type="button" class="btn btn-ghost" @click="showProductModal=false">Cancel</button>
+                    <button type="button" class="btn btn-ghost"
+                        @click="showProductModal=false">{{ __('messages.cancel') }}</button>
                     <button type="button" class="btn btn-primary" @click="saveProduct()" :disabled="saving">
                         <i class="fas fa-spinner fa-spin" x-show="saving"></i>
-                        <span x-text="saving ? 'Saving…' : (editingProduct ? 'Update Product' : 'Add Product')"></span>
+                        <span
+                            x-text="saving ? '{{ __('messages.saving') }}' : (editingProduct ? '{{ __('messages.update_product') }}' : '{{ __('messages.add_product') }}')"></span>
                     </button>
                 </div>
             </div>
@@ -424,7 +514,7 @@
         <div class="modal-overlay" x-show="showAdjustModal" x-cloak @click.self="showAdjustModal=false">
             <div class="modal-card modal-md">
                 <div class="modal-head">
-                    <div class="modal-title">Stock Adjustment</div>
+                    <div class="modal-title">{{ __('messages.stock_adjustment') }}</div>
                     <button class="modal-close" @click="showAdjustModal=false"><i class="fas fa-times"></i></button>
                 </div>
                 <div class="modal-body">
@@ -432,9 +522,11 @@
                     {{-- Product selector (if opened from toolbar not row) --}}
                     <div x-show="!adjustTarget" class="form-grid" style="margin-bottom:1rem">
                         <div>
-                            <label class="field-label">Select Variant <span class="field-req">*</span></label>
-                            <input type="text" class="field-input" x-model="adjustSearch"
-                                @input.debounce.300ms="searchForAdjust()" placeholder="Search product or SKU…">
+                            <label class="field-label">{{ __('messages.select_variant') }} <span
+                                    class="field-req">*</span></label>
+                            <input type="text" class="field-input" x-model="adjustSearch" autocomplete="off"
+                                autocapitalize="off" spellcheck="false" @input.debounce.300ms="searchForAdjust()"
+                                placeholder="{{ __('messages.search_product_or_sku') }}">
                         </div>
                         <div x-show="adjustSearchResults.length > 0"
                             style="border:1px solid var(--border);border-radius:var(--rsm);overflow:hidden;max-height:160px;overflow-y:auto">
@@ -444,7 +536,7 @@
                                     @click="adjustTarget=r;adjustSearch='';adjustSearchResults=[]">
                                     <span style="font-size:13px;font-weight:500" x-text="r.name"></span>
                                     <span style="font-family:var(--mono);font-size:12px;color:var(--ink3)"
-                                        x-text="r.sku + ' · ' + r.stock_quantity + ' in stock'"></span>
+                                        x-text="r.sku + ' · ' + r.stock_quantity + ' {{ __('messages.in_stock') }}'"></span>
                                 </div>
                             </template>
                         </div>
@@ -460,9 +552,10 @@
                         </div>
                         <div style="text-align:right">
                             <div style="font-size:10px;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em">
-                                Current Stock</div>
+                                {{ __('messages.current_stock') }}</div>
                             <div style="font-family:var(--mono);font-size:18px;font-weight:500;color:var(--blue)"
-                                x-text="adjustTarget?.stock_quantity + ' ' + (adjustTarget?.unit||'pcs')"></div>
+                                x-text="adjustTarget?.stock_quantity + ' ' + (adjustTarget?.unit||'{{ __('messages.pcs') }}')">
+                            </div>
                         </div>
                         <button type="button" @click="adjustTarget=null"
                             style="background:none;border:none;cursor:pointer;color:var(--ink3);font-size:14px"><i
@@ -470,52 +563,53 @@
                     </div>
 
                     {{-- Adjustment type --}}
-                    <label class="field-label" style="margin-bottom:.5rem">Adjustment Type <span
+                    <label class="field-label" style="margin-bottom:.5rem">{{ __('messages.adjustment_type') }} <span
                             class="field-req">*</span></label>
                     <div class="adj-type-grid">
                         <button type="button" class="adj-type-btn"
                             :class="af.type === 'increase' ? 'active-increase' : ''" @click="af.type='increase'">
-                            <span class="adj-icon">📈</span><span class="adj-lbl">Increase</span>
+                            <span class="adj-icon">📈</span><span class="adj-lbl">{{ __('messages.increase') }}</span>
                         </button>
                         <button type="button" class="adj-type-btn"
                             :class="af.type === 'decrease' ? 'active-decrease' : ''" @click="af.type='decrease'">
-                            <span class="adj-icon">📉</span><span class="adj-lbl">Decrease</span>
+                            <span class="adj-icon">📉</span><span class="adj-lbl">{{ __('messages.decrease') }}</span>
                         </button>
                         <button type="button" class="adj-type-btn"
                             :class="af.type === 'correction' ? 'active-correction' : ''" @click="af.type='correction'">
-                            <span class="adj-icon">🔧</span><span class="adj-lbl">Correction</span>
+                            <span class="adj-icon">🔧</span><span class="adj-lbl">{{ __('messages.correction') }}</span>
                         </button>
                         <button type="button" class="adj-type-btn"
                             :class="af.type === 'damage' ? 'active-damage' : ''" @click="af.type='damage'">
-                            <span class="adj-icon">⚠️</span><span class="adj-lbl">Damage</span>
+                            <span class="adj-icon">⚠️</span><span class="adj-lbl">{{ __('messages.damage') }}</span>
                         </button>
                         <button type="button" class="adj-type-btn"
                             :class="af.type === 'expiry' ? 'active-expiry' : ''" @click="af.type='expiry'">
-                            <span class="adj-icon">🗓️</span><span class="adj-lbl">Expiry</span>
+                            <span class="adj-icon">🗓️</span><span class="adj-lbl">{{ __('messages.expiry') }}</span>
                         </button>
                         <button type="button" class="adj-type-btn"
                             :class="af.type === 'return_to_supplier' ? 'active-return_to_supplier' : ''"
                             @click="af.type='return_to_supplier'">
-                            <span class="adj-icon">↩️</span><span class="adj-lbl">Return</span>
+                            <span class="adj-icon">↩️</span><span class="adj-lbl">{{ __('messages.return') }}</span>
                         </button>
                     </div>
 
                     <div class="form-grid form-grid-2" style="margin-top:.75rem">
                         <div>
-                            <label class="field-label">Quantity <span class="field-req">*</span></label>
+                            <label class="field-label">{{ __('messages.quantity') }} <span
+                                    class="field-req">*</span></label>
                             <input type="number" class="field-input" x-model.number="af.quantity" min="1"
                                 placeholder="0">
                         </div>
                         <div x-show="af.type==='correction'">
-                            <label class="field-label">New Stock Count</label>
+                            <label class="field-label">{{ __('messages.new_stock_count') }}</label>
                             <input type="number" class="field-input" x-model.number="af.new_count" min="0"
-                                placeholder="Actual count">
+                                placeholder="{{ __('messages.actual_count') }}">
                         </div>
                     </div>
 
                     <div style="margin-top:.75rem">
-                        <label class="field-label">Reason <span class="field-req">*</span></label>
-                        <textarea class="field-input" x-model="af.reason" placeholder="Explain why this adjustment is being made…"></textarea>
+                        <label class="field-label">{{ __('messages.reason') }} <span class="field-req">*</span></label>
+                        <textarea class="field-input" x-model="af.reason" placeholder="{{ __('messages.explain_why_adjustment') }}"></textarea>
                     </div>
 
                     {{-- Preview --}}
@@ -523,7 +617,7 @@
                         :class="af.type === 'increase' ? 'increase' : af.type === 'decrease' || af.type === 'damage' || af
                             .type === 'expiry' || af.type === 'return_to_supplier' ? 'decrease' : 'neutral'">
                         <span
-                            x-text="adjustTarget?.stock_quantity + ' → ' + previewStock + ' ' + (adjustTarget?.unit||'pcs')"></span>
+                            x-text="adjustTarget?.stock_quantity + ' → ' + previewStock + ' ' + (adjustTarget?.unit||'{{ __('messages.pcs') }}')"></span>
                         <span style="font-weight:700" x-text="(af.type==='increase'?'+':'-') + af.quantity"></span>
                     </div>
 
@@ -533,10 +627,11 @@
                 </div>
                 <div class="modal-foot">
                     <button type="button" class="btn btn-ghost"
-                        @click="showAdjustModal=false;adjustTarget=null">Cancel</button>
+                        @click="showAdjustModal=false;adjustTarget=null">{{ __('messages.cancel') }}</button>
                     <button type="button" class="btn btn-primary" @click="saveAdjustment()" :disabled="saving">
                         <i class="fas fa-spinner fa-spin" x-show="saving"></i>
-                        <span x-text="saving?'Saving…':'Save Adjustment'"></span>
+                        <span
+                            x-text="saving?'{{ __('messages.saving') }}':'{{ __('messages.save_adjustment') }}'"></span>
                     </button>
                 </div>
             </div>
@@ -548,19 +643,22 @@
         <div class="drawer-overlay" x-show="showPurchaseDrawer" x-cloak @click="showPurchaseDrawer=false"></div>
         <div class="drawer" x-show="showPurchaseDrawer" x-cloak>
             <div class="drawer-head">
-                <div style="font-family:var(--display);font-size:17px;font-weight:500;color:var(--ink)">New Purchase Order
+                <div style="font-family:var(--display);font-size:17px;font-weight:500;color:var(--ink)">
+                    {{ __('messages.new_purchase_order') }}
                 </div>
                 <button class="modal-close" @click="showPurchaseDrawer=false"><i class="fas fa-times"></i></button>
             </div>
             <div class="drawer-body">
 
                 <div class="form-section">
-                    <div class="form-section-title"><i class="fas fa-truck"></i> Supplier & Reference</div>
+                    <div class="form-section-title"><i class="fas fa-truck"></i> {{ __('messages.supplier_reference') }}
+                    </div>
                     <div class="form-grid">
                         <div>
-                            <label class="field-label">Supplier <span class="field-req">*</span></label>
+                            <label class="field-label">{{ __('messages.supplier') }} <span
+                                    class="field-req">*</span></label>
                             <select class="field-input" x-model="po.supplier_id">
-                                <option value="">Select supplier</option>
+                                <option value="">{{ __('messages.select_supplier') }}</option>
                                 @foreach ($suppliers ?? [] as $sup)
                                     <option value="{{ $sup->id }}">{{ $sup->name }}</option>
                                 @endforeach
@@ -568,29 +666,31 @@
                         </div>
                         <div class="form-grid" style="grid-template-columns:1fr 1fr;gap:8px">
                             <div>
-                                <label class="field-label">Purchase Date <span class="field-req">*</span></label>
+                                <label class="field-label">{{ __('messages.purchase_date') }} <span
+                                        class="field-req">*</span></label>
                                 <input type="date" class="field-input" x-model="po.purchase_date">
                             </div>
                             <div>
-                                <label class="field-label">Expected Delivery</label>
+                                <label class="field-label">{{ __('messages.expected_delivery') }}</label>
                                 <input type="date" class="field-input" x-model="po.delivery_date">
                             </div>
                         </div>
                         <div>
-                            <label class="field-label">Reference / Invoice #</label>
+                            <label class="field-label">{{ __('messages.reference_invoice') }}</label>
                             <input type="text" class="field-input" x-model="po.reference_number"
-                                placeholder="Supplier invoice number">
+                                placeholder="{{ __('messages.supplier_invoice_number') }}">
                         </div>
                     </div>
                 </div>
 
                 <div class="form-section">
-                    <div class="form-section-title"><i class="fas fa-list"></i> Order Items</div>
+                    <div class="form-section-title"><i class="fas fa-list"></i> {{ __('messages.order_items') }}</div>
 
                     {{-- Item search --}}
                     <div style="position:relative;margin-bottom:.75rem">
-                        <input type="text" class="field-input" x-model="poItemSearch"
-                            @input.debounce.300ms="searchForPO()" placeholder="Search product to add…">
+                        <input type="text" class="field-input" x-model="poItemSearch" autocomplete="off"
+                            autocapitalize="off" spellcheck="false" @input.debounce.300ms="searchForPO()"
+                            placeholder="{{ __('messages.search_product_to_add') }}">
                         <div x-show="poSearchResults.length > 0" x-cloak
                             style="position:absolute;left:0;right:0;top:100%;background:var(--surface);border:1px solid var(--border);border-radius:var(--rsm);box-shadow:var(--shmd);z-index:10;max-height:180px;overflow-y:auto">
                             <template x-for="r in poSearchResults" :key="r.variant_id">
@@ -607,10 +707,10 @@
                     <table class="po-items" x-show="po.items.length > 0">
                         <thead>
                             <tr>
-                                <th>Product</th>
-                                <th class="text-right">Qty</th>
-                                <th class="text-right">Unit Cost</th>
-                                <th class="text-right">Total</th>
+                                <th>{{ __('messages.product') }}</th>
+                                <th class="text-right">{{ __('messages.qty') }}</th>
+                                <th class="text-right">{{ __('messages.unit_cost') }}</th>
+                                <th class="text-right">{{ __('messages.total') }}</th>
                                 <th></th>
                             </tr>
                         </thead>
@@ -647,23 +747,22 @@
 
                     <div x-show="po.items.length === 0" class="empty-state" style="padding:1.5rem">
                         <i class="fas fa-cart-plus" style="font-size:24px"></i>
-                        <p>Search and add products above</p>
+                        <p>{{ __('messages.search_and_add_products_above') }}</p>
                     </div>
 
                     {{-- PO Total --}}
                     <div x-show="po.items.length > 0" x-cloak
                         style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:var(--s2);border-radius:var(--rsm);margin-top:8px;border:1px solid var(--border)">
                         <span
-                            style="font-size:12px;color:var(--ink3);font-weight:600;text-transform:uppercase;letter-spacing:.06em">Order
-                            Total</span>
+                            style="font-size:12px;color:var(--ink3);font-weight:600;text-transform:uppercase;letter-spacing:.06em">{{ __('messages.order_total') }}</span>
                         <span style="font-family:var(--mono);font-size:18px;font-weight:600;color:var(--blue)"
                             x-text="'Af ' + fmt(poTotal)"></span>
                     </div>
                 </div>
 
                 <div class="form-section">
-                    <div class="form-section-title"><i class="fas fa-pen"></i> Notes</div>
-                    <textarea class="field-input" x-model="po.notes" placeholder="Optional notes for this purchase order…"
+                    <div class="form-section-title"><i class="fas fa-pen"></i> {{ __('messages.notes') }}</div>
+                    <textarea class="field-input" x-model="po.notes" placeholder="{{ __('messages.optional_notes_purchase_order') }}"
                         rows="2"></textarea>
                 </div>
 
@@ -672,10 +771,12 @@
                     x-text="formError"></div>
             </div>
             <div class="drawer-foot">
-                <button type="button" class="btn btn-ghost" @click="showPurchaseDrawer=false">Cancel</button>
+                <button type="button" class="btn btn-ghost"
+                    @click="showPurchaseDrawer=false">{{ __('messages.cancel') }}</button>
                 <button type="button" class="btn btn-primary" @click="savePurchaseOrder()" :disabled="saving">
                     <i class="fas fa-spinner fa-spin" x-show="saving"></i>
-                    <span x-text="saving?'Saving…':'Create Purchase Order'"></span>
+                    <span
+                        x-text="saving?'{{ __('messages.saving') }}':'{{ __('messages.create_purchase_order') }}'"></span>
                 </button>
             </div>
         </div>
@@ -847,7 +948,7 @@
 
                 async saveProduct() {
                     if (!this.pf.name || !this.pf.sku || !this.pf.barcode) {
-                        this.formError = 'Name, SKU and Barcode are required.';
+                        this.formError = '{{ __('messages.name_sku_barcode_required') }}';
                         return;
                     }
                     this.saving = true;
@@ -868,16 +969,16 @@
                         if (d.success) {
                             this.showProductModal = false;
                             this.loadProducts();
-                        } else this.formError = d.message ?? 'Failed to save.';
+                        } else this.formError = d.message ?? '{{ __('messages.failed_to_save') }}';
                     } catch (e) {
-                        this.formError = 'Network error.';
+                        this.formError = '{{ __('messages.network_error') }}';
                     } finally {
                         this.saving = false;
                     }
                 },
 
                 async toggleActive(p) {
-                    if (!confirm(`${p.is_active ? 'Deactivate' : 'Activate'} ${p.name}?`)) return;
+                    if (!confirm(`${p.is_active ? '{{ __('messages.deactivate') }}' : '{{ __('messages.activate') }}'} ${p.name}?`)) return;
                     await fetch(`${this.urls.toggle}/${p.variant_id}/toggle`, {
                         method: 'POST',
                         headers: {
@@ -916,15 +1017,15 @@
 
                 async saveAdjustment() {
                     if (!this.adjustTarget) {
-                        this.formError = 'Select a product.';
+                        this.formError = '{{ __('messages.select_product') }}';
                         return;
                     }
                     if (!this.af.quantity && this.af.type !== 'correction') {
-                        this.formError = 'Enter a quantity.';
+                        this.formError = '{{ __('messages.enter_quantity') }}';
                         return;
                     }
                     if (!this.af.reason.trim()) {
-                        this.formError = 'Reason is required.';
+                        this.formError = '{{ __('messages.reason_required') }}';
                         return;
                     }
                     this.saving = true;
@@ -946,9 +1047,9 @@
                             this.showAdjustModal = false;
                             this.adjustTarget = null;
                             this.loadProducts();
-                        } else this.formError = d.message ?? 'Adjustment failed.';
+                        } else this.formError = d.message ?? '{{ __('messages.adjustment_failed') }}';
                     } catch (e) {
-                        this.formError = 'Network error.';
+                        this.formError = '{{ __('messages.network_error') }}';
                     } finally {
                         this.saving = false;
                     }
@@ -986,15 +1087,16 @@
 
                 async savePurchaseOrder() {
                     if (!this.po.supplier_id) {
-                        this.formError = 'Select a supplier.';
+                        this.formError = '{{ __('messages.select_supplier') }}';
                         return;
                     }
+                    // Your code with translations
                     if (!this.po.purchase_date) {
-                        this.formError = 'Purchase date is required.';
+                        this.formError = '{{ __('messages.purchase_date_required') }}';
                         return;
                     }
                     if (!this.po.items.length) {
-                        this.formError = 'Add at least one item.';
+                        this.formError = '{{ __('messages.add_at_least_one_item') }}';
                         return;
                     }
                     this.saving = true;
@@ -1023,9 +1125,9 @@
                                 items: []
                             };
                             alert(`Purchase Order ${d.local_id} created.`);
-                        } else this.formError = d.message ?? 'Failed.';
+                        } else this.formError = d.message ?? '{{ __('messages.failed') }}';
                     } catch (e) {
-                        this.formError = 'Network error.';
+                        this.formError = '{{ __('messages.network_error') }}';
                     } finally {
                         this.saving = false;
                     }

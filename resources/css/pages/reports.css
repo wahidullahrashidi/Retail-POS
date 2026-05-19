@@ -228,6 +228,9 @@
     margin-left: auto
 }
 
+
+.filter-select{padding:9px 12px;background:var(--surface);border:1.5px solid var(--border);border-radius:var(--rsm);font-family:var(--body);font-size:12.5px;color:var(--ink2);outline:none;cursor:pointer;transition:border .15s}
+.filter-select:focus{border-color:var(--blue)}
 /* ══════════════════════════════════════
                TAB NAV
             ══════════════════════════════════════ */
@@ -1074,4 +1077,54 @@
 
 .empty-chart p {
     font-size: 12px
+}
+
+/* RTL Table Styles for Reports (mini-table) */
+.rtl-table {
+    direction: rtl;
+}
+
+.rtl-table th,
+.rtl-table td {
+    text-align: right;
+}
+
+.rtl-table th.cell-right,
+.rtl-table td.cell-right {
+    text-align: left !important;
+}
+
+.rtl-table th.cell-center,
+.rtl-table td.cell-center {
+    text-align: center !important;
+}
+
+/* Fix product cell (name + SKU) */
+.rtl-table td > div:first-child {
+    text-align: right;
+}
+
+/* Fix pills */
+.rtl-table .pill {
+    display: inline-block;
+}
+
+/* Fix rank badge */
+.rtl-table .rank {
+    display: inline-block;
+}
+
+/* Fix sort icons */
+.rtl-table th i.fa-sort {
+    margin-right: 5px;
+    margin-left: 0;
+}
+
+/* Fix pagination (if any) */
+.rtl-table + .pag-row .pag-info {
+    text-align: right;
+}
+
+.rtl-table + .pag-row .pag-btns {
+    flex-direction: row-reverse;
 }

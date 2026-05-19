@@ -27,10 +27,8 @@ class BackupController extends Controller
     // ══════════════════════════════════════════
     public function status()
     {
-        $disk = Storage::disk('google');
-
-        // local backup folder
-        $backupPath = storage_path('app/private/Afghan POS');
+        $backupPath = $this->backupBasePath();
+        $this->ensureBackupPath();
 
         $files = collect(glob($backupPath . '/*.zip'))
             ->sortDesc();
@@ -54,11 +52,9 @@ class BackupController extends Controller
                     ? round(filesize($last) / 1024 / 1024, 2) . ' MB'
                     : null,
 
-                'cloud_status' => 'Connected',
-
-                'cloud_enabled' => true,
-
-                'cloud_provider' => 'Google Drive',
+                'cloud_status' => $this->detectCloudProvider() === 'Not configured' ? 'Not configured' : 'Configured',
+                'cloud_enabled' => $this->detectCloudProvider() !== 'Not configured',
+                'cloud_provider' => $this->detectCloudProvider(),
                 'total_pending' =>
                 \App\Models\Sale::where('sync_status', 'pending')->count()
                     +
@@ -71,15 +67,15 @@ class BackupController extends Controller
                 'disk_pct' => round(($used / $total) * 100),
 
                 'backup_folder_size' => round(
-                    collect(Storage::files('backups'))
-                        ->sum(fn($f) => Storage::size($f))
+                    collect(glob($backupPath . '/*.zip') ?: [])
+                        ->sum(fn($f) => filesize($f))
                         / 1024 / 1024,
                     2
                 ) . ' MB',
 
                 'db_name' => env('DB_DATABASE'),
 
-                'backup_path' => 'storage/app/backups',
+                'backup_path' => $backupPath,
 
                 'encrypted' => false,
             ],
@@ -106,10 +102,10 @@ class BackupController extends Controller
                 ],
             ],
             'cloud' => [
-                'client_id' => env('GOOGLE_DRIVE_CLIENT_ID'),
-                'client_secret' => env('GOOGLE_DRIVE_CLIENT_SECRET'),
-                'refresh_token' => env('GOOGLE_DRIVE_REFRESH_TOKEN'),
-                'folder_id' => env('GOOGLE_DRIVE_FOLDER_ID'),
+                'client_id' => filled(env('GOOGLE_DRIVE_CLIENT_ID')),
+                'client_secret' => filled(env('GOOGLE_DRIVE_CLIENT_SECRET')),
+                'refresh_token' => filled(env('GOOGLE_DRIVE_REFRESH_TOKEN')),
+                'folder_id' => filled(env('GOOGLE_DRIVE_FOLDER_ID')),
             ]
         ]);
     }
@@ -120,7 +116,8 @@ class BackupController extends Controller
     // ══════════════════════════════════════════
     public function list()
     {
-        $backupPath = storage_path('app/private/Afghan POS');
+        $backupPath = $this->backupBasePath();
+        $this->ensureBackupPath();
         $backups = [];
 
         if (is_dir($backupPath)) {
@@ -182,7 +179,8 @@ class BackupController extends Controller
             $output = Artisan::output();
 
             // Local backup folder
-            $backupPath = storage_path('app/private/Afghan POS');
+            $backupPath = $this->backupBasePath();
+            $this->ensureBackupPath();
 
             $files = is_dir($backupPath)
                 ? glob($backupPath . '/*.zip')
@@ -201,12 +199,11 @@ class BackupController extends Controller
                 $filename = basename($latest);
 
                 // get selected cloud provider
-                $provider = env('FILESYSTEM_CLOUD', 'google');
+                $provider = $this->cloudDiskName();
 
                 // upload if provider configured
-                if (in_array($provider, ['google', 'dropbox', 'ftp'])) {
-
-                    Storage::disk($provider)->write(
+                if (in_array($provider, ['google', 'dropbox', 'ftp'], true)) {
+                    Storage::disk($provider)->put(
                         $filename,
                         file_get_contents($latest)
                     );
@@ -221,7 +218,7 @@ class BackupController extends Controller
                 'success' => true,
                 'filename' => $filename,
                 'size' => $size,
-                'provider' => ucfirst($provider),
+                'provider' => ucfirst($provider ?? 'local'),
                 'output' => $output,
             ]);
         } catch (\Throwable $e) {
@@ -241,15 +238,16 @@ class BackupController extends Controller
     {
         $request->validate([
             'path' => 'required|string',
+            'confirm' => 'required|in:RESTORE',
         ]);
 
         $path = $request->input('path');
 
         // Security: ensure path is within backup directory
-        $allowedBase = storage_path('app/Afghan POS');
+        $allowedBase = $this->backupBasePath();
         $realPath    = realpath($path);
 
-        if (!$realPath || strpos($realPath, $allowedBase) !== 0) {
+        if (!$this->isPathInside($realPath, $allowedBase)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Invalid backup path.',
@@ -332,10 +330,10 @@ class BackupController extends Controller
     public function download(Request $request)
     {
         $path        = $request->input('path');
-        $allowedBase = storage_path('app/Afghan POS');
+        $allowedBase = $this->backupBasePath();
         $realPath    = realpath($path);
 
-        if (!$realPath || strpos($realPath, $allowedBase) !== 0 || !file_exists($realPath)) {
+        if (!$this->isPathInside($realPath, $allowedBase) || !file_exists($realPath)) {
             abort(404, 'Backup file not found.');
         }
 
@@ -349,10 +347,10 @@ class BackupController extends Controller
     public function delete(Request $request)
     {
         $path        = $request->input('path');
-        $allowedBase = storage_path('app/Afghan POS');
+        $allowedBase = $this->backupBasePath();
         $realPath    = realpath($path);
 
-        if (!$realPath || strpos($realPath, $allowedBase) !== 0) {
+        if (!$this->isPathInside($realPath, $allowedBase)) {
             return response()->json(['success' => false, 'message' => 'Invalid path.'], 422);
         }
 
@@ -523,6 +521,35 @@ class BackupController extends Controller
                 'failed'  => Purchase::where('sync_status', 'failed')->count(),
             ],
         ];
+    }
+
+    private function backupBasePath(): string
+    {
+        return storage_path('app/private/Afghan POS');
+    }
+
+    private function ensureBackupPath(): void
+    {
+        if (! is_dir($this->backupBasePath())) {
+            mkdir($this->backupBasePath(), 0755, true);
+        }
+    }
+
+    private function cloudDiskName(): string
+    {
+        return match (env('FILESYSTEM_CLOUD', 'google')) {
+            'gdrive' => 'google',
+            default => env('FILESYSTEM_CLOUD', 'google'),
+        };
+    }
+
+    private function isPathInside(?string $realPath, string $allowedBase): bool
+    {
+        $realBase = realpath($allowedBase);
+
+        return $realPath
+            && $realBase
+            && str_starts_with(strtolower($realPath), strtolower($realBase . DIRECTORY_SEPARATOR));
     }
 
     private function detectCloudProvider(): string

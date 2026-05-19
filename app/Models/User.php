@@ -17,6 +17,7 @@ class User extends Authenticatable
         'password',
         'photo',
         'pin_code',
+        'permissions',
         'is_active',
         'last_login_at',
     ];
@@ -33,6 +34,7 @@ class User extends Authenticatable
             'is_active' => 'boolean',
             'last_login_at' => 'datetime',
             'password' => 'hashed',
+            'permissions' => 'array',
         ];
     }
 
@@ -44,5 +46,51 @@ class User extends Authenticatable
     public function shifts()
     {
         return $this->hasMany(Shift::class, 'user_id');
+    }
+
+    public function isAdmin(): bool
+    {
+        return $this->role?->name === 'admin' || $this->hasPermission('*');
+    }
+
+    public function hasPermission(string $permission): bool
+    {
+        $userPermissions = $this->permissions ?? [];
+
+        if ($this->matchesPermission($userPermissions, $permission)) {
+            return true;
+        }
+
+        return (bool) $this->role?->hasPermission($permission);
+    }
+
+    public function hasAnyPermission(array|string $permissions): bool
+    {
+        foreach ((array) $permissions as $permission) {
+            if ($this->hasPermission($permission)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function matchesPermission(array $allowedPermissions, string $permission): bool
+    {
+        if (in_array('*', $allowedPermissions, true)) {
+            return true;
+        }
+
+        foreach ($allowedPermissions as $allowed) {
+            if ($allowed === $permission) {
+                return true;
+            }
+
+            if (str_ends_with($allowed, '.*') && str_starts_with($permission, rtrim($allowed, '*'))) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

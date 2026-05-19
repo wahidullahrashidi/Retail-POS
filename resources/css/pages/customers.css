@@ -356,3 +356,116 @@ textarea.field-input { resize: vertical; min-height: 70px; }
 .payment-history { margin-top: .75rem; }
 .ph-item { display: flex; justify-content: space-between; padding: 7px 10px; background: var(--s2); border: 1px solid var(--border); border-radius: var(--rsm); margin-bottom: 4px; font-size: 12px; }
 .ph-amount { font-family: var(--mono); font-weight: 600; color: var(--green); }
+
+/* RTL Table Styles */
+.rtl-table {
+    direction: rtl;
+}
+
+.rtl-table th,
+.rtl-table td {
+    text-align: right;
+}
+
+/* Adjust specific columns for RTL */
+.rtl-table th.text-right,
+.rtl-table td.text-right {
+    text-align: left !important;
+}
+
+/* Fix customer cell for RTL */
+.rtl-table .customer-cell {
+    flex-direction: row-reverse;
+}
+
+.rtl-table .customer-cell .avatar {
+    margin-left: 8px;
+    margin-right: 0;
+}
+
+/* Fix badge positioning */
+.rtl-table .badge {
+    display: inline-block;
+}
+
+/* Fix amount cell */
+.rtl-table .amount-cell {
+    text-align: right;
+}
+
+/* Fix time cell */
+.rtl-table .time-cell {
+    text-align: right;
+}
+
+/* Fix ellipsis button */
+.rtl-table .text-center button {
+    float: right;
+}
+
+
+/* RTL Table Styles for Pashto/Dari */
+.rtl-table {
+    direction: rtl;
+}
+
+.rtl-table th,
+.rtl-table td {
+    text-align: right;
+}
+
+/* Override text-right and text-center for RTL */
+.rtl-table th.text-right,
+.rtl-table td.text-right {
+    text-align: left !important;
+}
+
+.rtl-table th.text-center,
+.rtl-table td.text-center {
+    text-align: center !important;
+}
+
+/* Fix product cell layout */
+.rtl-table .cell-product {
+    display: flex;
+    flex-direction: row-reverse;
+    text-align: right;
+}
+
+.rtl-table .prod-thumb {
+    margin-left: 12px;
+    margin-right: 0;
+}
+
+.rtl-table .prod-name,
+.rtl-table .prod-sku {
+    text-align: right;
+}
+
+/* Fix price and cost cells */
+.rtl-table .cell-price,
+.rtl-table .cell-cost {
+    text-align: left !important;
+}
+
+/* Fix stock badge */
+.rtl-table .stock-badge {
+    display: inline-block;
+}
+
+/* Fix row actions buttons */
+.rtl-table .row-actions {
+    display: flex;
+    flex-direction: row-reverse;
+    gap: 8px;
+}
+
+.rtl-table .row-actions button {
+    margin: 0;
+}
+
+/* Fix sort icons position */
+.rtl-table th i.fa-sort {
+    margin-right: 5px;
+    margin-left: 0;
+}

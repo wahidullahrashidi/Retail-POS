@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @push('styles')
-    @vite(['resources/css/pages/backup.css'])
+    @if(file_exists(public_path('build/manifest.json')) || file_exists(public_path('hot'))) @vite(['resources/css/pages/backup.css']) @endif
 @endpush
 
 @section('content')
@@ -9,10 +9,10 @@
 
         {{-- ════ TOPBAR ════ --}}
         <div class="bk-top">
-            <div class="bk-title">Afghan <em>POS</em> — Backup & Sync</div>
+            <div class="bk-title">Afghan <em>POS</em> — {{ __('messages.backup_sync') }}</div>
             <div class="top-r">
                 <button class="btn btn-ghost" @click="refreshAll()">
-                    <i class="fas fa-rotate" :class="refreshing ? 'fa-spin' : ''"></i> Refresh
+                    <i class="fas fa-rotate" :class="refreshing ? 'fa-spin' : ''"></i> {{ __('messages.refresh') }}
                 </button>
             </div>
         </div>
@@ -22,42 +22,42 @@
             {{-- ════ STATUS CARDS ════ --}}
             <div class="status-grid">
                 <div class="status-card" style="--ac:var(--green)">
-                    <div class="sc-label">Last Backup <span><i class="fas fa-clock" style="color:var(--green)"></i></span>
+                    <div class="sc-label">{{ __('messages.last_backup') }} <span><i class="fas fa-clock" style="color:var(--green)"></i></span>
                     </div>
-                    <div class="sc-val sm" x-text="status.last_backup || 'Never'"></div>
+                    <div class="sc-val sm" x-text="status.last_backup || '{{ __('messages.never') }}'"></div>
                     <div class="sc-sub">
                         <span class="status-dot" :class="status.last_backup ? 'dot-green' : 'dot-gray'"></span>
                         <span
-                            x-text="status.last_backup_size ? status.last_backup_size + ' file size' : 'No backups yet'"></span>
+                            x-text="status.last_backup_size ? status.last_backup_size + ' {{ __('messages.file_size') }}' : '{{ __('messages.no_backups_yet') }}'"></span>
                     </div>
                 </div>
                 <div class="status-card" style="--ac:var(--blue)">
-                    <div class="sc-label">Cloud Sync <span><i class="fas fa-cloud" style="color:var(--blue)"></i></span>
+                    <div class="sc-label">{{ __('messages.cloud_sync') }} <span><i class="fas fa-cloud" style="color:var(--blue)"></i></span>
                     </div>
-                    <div class="sc-val sm" x-text="status.cloud_status || 'Not configured'"></div>
+                    <div class="sc-val sm" x-text="status.cloud_status || '{{ __('messages.not_configured') }}'"></div>
                     <div class="sc-sub">
                         <span class="status-dot" :class="status.cloud_enabled ? 'dot-green' : 'dot-gray'"></span>
-                        <span x-text="status.cloud_provider || 'No provider set'"></span>
+                        <span x-text="status.cloud_provider || '{{ __('messages.no_provider_set') }}'"></span>
                     </div>
                 </div>
                 <div class="status-card" style="--ac:var(--amber)">
-                    <div class="sc-label">Pending Sync <span><i class="fas fa-rotate" style="color:var(--amber)"></i></span>
+                    <div class="sc-label">{{ __('messages.pending_sync') }} <span><i class="fas fa-rotate" style="color:var(--amber)"></i></span>
                     </div>
                     <div class="sc-val" style="color:var(--amber)" x-text="status.total_pending || 0"></div>
                     <div class="sc-sub">
                         <span class="status-dot"
                             :class="(status.total_pending || 0) > 0 ? 'dot-amber' : 'dot-green'"></span>
                         <span
-                            x-text="(status.total_pending||0) > 0 ? 'records awaiting sync' : 'all records synced'"></span>
+                            x-text="(status.total_pending||0) > 0 ? '{{ __('messages.records_awaiting_sync') }}' : '{{ __('messages.all_records_synced') }}'"></span>
                     </div>
                 </div>
                 <div class="status-card" style="--ac:var(--violet)">
-                    <div class="sc-label">Disk Usage <span><i class="fas fa-hard-drive"
+                    <div class="sc-label">{{ __('messages.disk_usage') }} <span><i class="fas fa-hard-drive"
                                 style="color:var(--violet)"></i></span></div>
                     <div class="sc-val sm" x-text="status.disk_used || '—'"></div>
                     <div class="sc-sub">
                         <span class="status-dot" :class="(status.disk_pct || 0) > 85 ? 'dot-red' : 'dot-green'"></span>
-                        <span x-text="(status.disk_pct||0) + '% of ' + (status.disk_total||'—') + ' used'"></span>
+                        <span x-text="(status.disk_pct||0) + '% {{ __('messages.of') }} ' + (status.disk_total||'—') + ' {{ __('messages.used') }}'"></span>
                     </div>
                 </div>
             </div>
@@ -65,23 +65,22 @@
             {{-- ════ BACKUP NOW HERO ════ --}}
             <div class="backup-hero">
                 <div class="bh-left">
-                    <div class="bh-title">Run a Backup</div>
+                    <div class="bh-title">{{ __('messages.run_backup') }}</div>
                     <div class="bh-sub">
-                        Creates a compressed archive of your entire database and stores it locally.
-                        If cloud sync is configured, it will also upload to your cloud provider.
+                        {{ __('messages.run_backup_description') }}
                     </div>
                     <div class="bh-meta">
                         <div class="bh-meta-item">
                             <i class="fas fa-database"></i>
-                            <span>Database: <strong x-text="status.db_name || 'afghan_pos'"></strong></span>
+                            <span>{{ __('messages.database') }}: <strong x-text="status.db_name || 'afghan_pos'"></strong></span>
                         </div>
                         <div class="bh-meta-item">
                             <i class="fas fa-folder"></i>
-                            <span>Stored in: <strong x-text="status.backup_path || 'storage/backups'"></strong></span>
+                            <span>{{ __('messages.stored_in') }}: <strong x-text="status.backup_path || 'storage/backups'"></strong></span>
                         </div>
                         <div class="bh-meta-item">
                             <i class="fas fa-shield"></i>
-                            <span>Encrypted: <strong x-text="status.encrypted ? 'Yes' : 'No'"></strong></span>
+                            <span>{{ __('messages.encrypted') }}: <strong x-text="status.encrypted ? '{{ __('messages.yes') }}' : '{{ __('messages.no') }}'"></strong></span>
                         </div>
                     </div>
 
@@ -116,19 +115,19 @@
                     <button type="button" class="btn-backup-now" @click="runBackup()" :disabled="backupRunning">
                         <template x-if="!backupRunning">
                             <span style="display:flex;align-items:center;gap:8px">
-                                <i class="fas fa-cloud-arrow-up"></i> Backup Now
+                                <i class="fas fa-cloud-arrow-up"></i> {{ __('messages.backup_now') }}
                             </span>
                         </template>
                         <template x-if="backupRunning">
                             <span style="display:flex;align-items:center;gap:8px">
-                                <i class="fas fa-spinner fa-spin"></i> Running…
+                                <i class="fas fa-spinner fa-spin"></i> {{ __('messages.running') }}…
                             </span>
                         </template>
                     </button>
                     <button type="button" class="btn btn-ghost" style="justify-content:center" @click="runSync()"
                         :disabled="syncRunning">
                         <i class="fas fa-rotate" :class="syncRunning ? 'fa-spin' : ''"></i>
-                        <span x-text="syncRunning?'Syncing…':'Sync Records'"></span>
+                        <span x-text="syncRunning?'{{ __('messages.syncing') }}…':'{{ __('messages.sync_records') }}'"></span>
                     </button>
                 </div>
             </div>
@@ -141,9 +140,9 @@
                     {{-- BACKUP HISTORY --}}
                     <div class="card">
                         <div class="card-head">
-                            <div class="card-title"><i class="fas fa-history"></i> Backup History</div>
+                            <div class="card-title"><i class="fas fa-history"></i> {{ __('messages.backup_history') }}</div>
                             <span style="font-size:11px;color:var(--ink3)"
-                                x-text="backups.length + ' backup(s) stored'"></span>
+                                x-text="backups.length + ' {{ __('messages.backup_s_stored') }}'"></span>
                         </div>
                         <div x-show="backupsLoading" style="text-align:center;padding:2rem;color:var(--ink3)">
                             <i class="fas fa-spinner fa-spin" style="font-size:18px"></i>
@@ -151,16 +150,16 @@
                         <div x-show="!backupsLoading">
                             <div class="empty-state" x-show="backups.length===0">
                                 <i class="fas fa-folder-open"></i>
-                                <p>No backups yet.<br>Run your first backup above.</p>
+                                <p>{{ __('messages.no_backups_yet') }}<br>{{ __('messages.run_first_backup') }}</p>
                             </div>
                             <div x-show="backups.length>0" style="overflow-x:auto">
                                 <table class="bk-table">
                                     <thead>
                                         <tr>
-                                            <th>File Name</th>
-                                            <th>Size</th>
-                                            <th>Created</th>
-                                            <th>Type</th>
+                                            <th>{{ __('messages.file_name') }}</th>
+                                            <th>{{ __('messages.size') }}</th>
+                                            <th>{{ __('messages.created') }}</th>
+                                            <th>{{ __('messages.type') }}</th>
                                             <th></th>
                                         </tr>
                                     </thead>
@@ -172,20 +171,20 @@
                                                 <td><span class="bk-date" x-text="b.created_at"></span></td>
                                                 <td>
                                                     <span class="pill" :class="b.cloud ? 'pill-blue' : 'pill-gray'"
-                                                        x-text="b.cloud ? 'Cloud + Local' : 'Local'"></span>
+                                                        x-text="b.cloud ? '{{ __('messages.cloud_local') }}' : '{{ __('messages.local') }}'"></span>
                                                 </td>
                                                 <td>
                                                     <div class="row-acts">
                                                         <button type="button" class="btn btn-ghost btn-sm"
-                                                            @click="downloadBackup(b)" title="Download">
+                                                            @click="downloadBackup(b)" title="{{ __('messages.download') }}">
                                                             <i class="fas fa-download"></i>
                                                         </button>
                                                         <button type="button" class="btn btn-green btn-sm"
-                                                            @click="openRestoreModal(b)" title="Restore">
+                                                            @click="openRestoreModal(b)" title="{{ __('messages.restore') }}">
                                                             <i class="fas fa-rotate-left"></i>
                                                         </button>
                                                         <button type="button" class="btn btn-danger btn-sm"
-                                                            @click="deleteBackup(b)" title="Delete">
+                                                            @click="deleteBackup(b)" title="{{ __('messages.delete') }}">
                                                             <i class="fas fa-trash"></i>
                                                         </button>
                                                     </div>
@@ -201,11 +200,11 @@
                     {{-- SYNC STATUS --}}
                     <div class="card">
                         <div class="card-head">
-                            <div class="card-title"><i class="fas fa-rotate"></i> Sync Status by Table</div>
+                            <div class="card-title"><i class="fas fa-rotate"></i> {{ __('messages.sync_status_by_table') }}</div>
                             <button type="button" class="btn btn-ghost btn-sm" @click="runSync()"
                                 :disabled="syncRunning">
                                 <i class="fas fa-rotate" :class="syncRunning ? 'fa-spin' : ''"></i>
-                                <span x-text="syncRunning?'Syncing…':'Sync All'"></span>
+                                <span x-text="syncRunning?'{{ __('messages.syncing') }}…':'{{ __('messages.sync_all') }}'"></span>
                             </button>
                         </div>
                         <div class="card-body">
@@ -217,15 +216,15 @@
                                         </div>
                                         <div>
                                             <div class="sr-name" x-text="table.label"></div>
-                                            <div class="sr-count" x-text="table.total + ' total records'"></div>
+                                            <div class="sr-count" x-text="table.total + ' {{ __('messages.total_records') }}'"></div>
                                         </div>
                                     </div>
                                     <div class="sr-right">
                                         <span class="pill" :class="table.failed > 0 ? 'pill-red' : 'pill-gray'"
-                                            x-show="table.failed > 0" x-text="table.failed + ' failed'"></span>
+                                            x-show="table.failed > 0" x-text="table.failed + ' {{ __('messages.failed') }}'"></span>
                                         <div style="text-align:right">
                                             <div class="sr-pending" :class="table.pending > 0 ? 'has' : 'none'"
-                                                x-text="table.pending > 0 ? table.pending + ' pending' : '✓ Synced'"></div>
+                                                x-text="table.pending > 0 ? table.pending + ' {{ __('messages.pending') }}' : '✓ {{ __('messages.synced') }}'"></div>
                                         </div>
                                         <button type="button" class="btn btn-ghost btn-sm"
                                             x-show="table.pending > 0 || table.failed > 0" @click="syncTable(table.name)">
@@ -240,15 +239,15 @@
                     {{-- BACKUP LOG --}}
                     <div class="card">
                         <div class="card-head">
-                            <div class="card-title"><i class="fas fa-terminal"></i> Activity Log</div>
+                            <div class="card-title"><i class="fas fa-terminal"></i> {{ __('messages.activity_log') }}</div>
                             <button type="button" class="btn btn-ghost btn-sm" @click="clearLog()">
-                                <i class="fas fa-trash"></i> Clear
+                                <i class="fas fa-trash"></i> {{ __('messages.clear') }}
                             </button>
                         </div>
                         <div class="card-body">
                             <div x-show="logs.length===0" class="empty-state" style="padding:1.5rem">
                                 <i class="fas fa-file-lines" style="font-size:24px"></i>
-                                <p>No activity yet.</p>
+                                <p>{{ __('messages.no_activity_yet') }}</p>
                             </div>
                             <div class="log-list">
                                 <template x-for="(log, idx) in logs" :key="idx">
@@ -276,26 +275,26 @@
                     {{-- SCHEDULE --}}
                     <div class="card">
                         <div class="card-head">
-                            <div class="card-title"><i class="fas fa-clock"></i> Backup Schedule</div>
+                            <div class="card-title"><i class="fas fa-clock"></i> {{ __('messages.backup_schedule') }}</div>
                             <button type="button" class="btn btn-primary btn-sm" @click="saveSchedule()">
-                                <i class="fas fa-floppy-disk"></i> Save
+                                <i class="fas fa-floppy-disk"></i> {{ __('messages.save') }}
                             </button>
                         </div>
                         <div class="card-body">
                             <div class="schedule-grid">
                                 <div class="schedule-item">
                                     <div>
-                                        <div class="si-label"><i class="fas fa-clock"></i> Daily Backup</div>
-                                        <div class="si-sub">Runs every day at set time</div>
+                                        <div class="si-label"><i class="fas fa-clock"></i> {{ __('messages.daily_backup') }}</div>
+                                        <div class="si-sub">{{ __('messages.daily_backup_sub') }}</div>
                                     </div>
                                     <div class="si-right">
                                         <select class="f-sel" x-model="schedule.daily_time" style="width:100px">
-                                            <option value="00:00">Midnight</option>
-                                            <option value="02:00">2:00 AM</option>
-                                            <option value="06:00">6:00 AM</option>
-                                            <option value="12:00">Noon</option>
-                                            <option value="22:00">10:00 PM</option>
-                                            <option value="23:00">11:00 PM</option>
+                                            <option value="00:00">{{ __('messages.midnight') }}</option>
+                                            <option value="02:00">{{ __('messages.two_am') }}</option>
+                                            <option value="06:00">{{ __('messages.six_am') }}</option>
+                                            <option value="12:00">{{ __('messages.noon') }}</option>
+                                            <option value="22:00">{{ __('messages.ten_pm') }}</option>
+                                            <option value="23:00">{{ __('messages.eleven_pm') }}</option>
                                         </select>
                                         <label class="toggle">
                                             <input type="checkbox" x-model="schedule.daily_enabled">
@@ -305,8 +304,8 @@
                                 </div>
                                 <div class="schedule-item">
                                     <div>
-                                        <div class="si-label"><i class="fas fa-calendar-week"></i> Weekly Backup</div>
-                                        <div class="si-sub">Full backup every week</div>
+                                        <div class="si-label"><i class="fas fa-calendar-week"></i> {{ __('messages.weekly_backup') }}</div>
+                                        <div class="si-sub">{{ __('messages.weekly_backup_sub') }}</div>
                                     </div>
                                     <label class="toggle">
                                         <input type="checkbox" x-model="schedule.weekly_enabled">
@@ -315,9 +314,9 @@
                                 </div>
                                 <div class="schedule-item">
                                     <div>
-                                        <div class="si-label"><i class="fas fa-cloud-arrow-up"></i> Auto Cloud Upload
+                                        <div class="si-label"><i class="fas fa-cloud-arrow-up"></i> {{ __('messages.auto_cloud_upload') }}
                                         </div>
-                                        <div class="si-sub">Upload after each backup</div>
+                                        <div class="si-sub">{{ __('messages.auto_cloud_upload_sub') }}</div>
                                     </div>
                                     <label class="toggle">
                                         <input type="checkbox" x-model="schedule.auto_cloud">
@@ -326,15 +325,15 @@
                                 </div>
                                 <div class="schedule-item">
                                     <div>
-                                        <div class="si-label"><i class="fas fa-broom"></i> Auto Cleanup</div>
-                                        <div class="si-sub">Keep only last N backups</div>
+                                        <div class="si-label"><i class="fas fa-broom"></i> {{ __('messages.auto_cleanup') }}</div>
+                                        <div class="si-sub">{{ __('messages.auto_cleanup_sub') }}</div>
                                     </div>
                                     <div class="si-right">
                                         <select class="f-sel" x-model="schedule.keep_count" style="width:80px">
                                             <option value="5">5</option>
                                             <option value="10">10</option>
                                             <option value="30">30</option>
-                                            <option value="0">All</option>
+                                            <option value="0">{{ __('messages.all') }}</option>
                                         </select>
                                         <label class="toggle">
                                             <input type="checkbox" x-model="schedule.cleanup_enabled">
@@ -344,8 +343,8 @@
                                 </div>
                                 <div class="schedule-item">
                                     <div>
-                                        <div class="si-label"><i class="fas fa-lock"></i> Encrypt Backups</div>
-                                        <div class="si-sub">AES-256 encryption</div>
+                                        <div class="si-label"><i class="fas fa-lock"></i> {{ __('messages.encrypt_backups') }}</div>
+                                        <div class="si-sub">{{ __('messages.encrypt_backups_sub') }}</div>
                                     </div>
                                     <label class="toggle">
                                         <input type="checkbox" x-model="schedule.encrypt">
@@ -359,12 +358,12 @@
                     {{-- DISK USAGE --}}
                     <div class="card">
                         <div class="card-head">
-                            <div class="card-title"><i class="fas fa-hard-drive"></i> Storage</div>
+                            <div class="card-title"><i class="fas fa-hard-drive"></i> {{ __('messages.storage') }}</div>
                         </div>
                         <div class="card-body">
                             <div class="disk-gauge">
                                 <div class="dg-row">
-                                    <span>Local Disk</span>
+                                    <span>{{ __('messages.local_disk') }}</span>
                                     <span style="font-family:var(--mono);font-size:12px"
                                         x-text="status.disk_used + ' / ' + status.disk_total"></span>
                                 </div>
@@ -375,17 +374,17 @@
                                 </div>
                                 <div class="dg-legend">
                                     <div class="dg-leg">
-                                        <div class="dg-dot" style="background:var(--blue)"></div> Used
+                                        <div class="dg-dot" style="background:var(--blue)"></div> {{ __('messages.used') }}
                                     </div>
                                     <div class="dg-leg">
-                                        <div class="dg-dot" style="background:var(--s3)"></div> Free
+                                        <div class="dg-dot" style="background:var(--s3)"></div> {{ __('messages.free') }}
                                     </div>
                                 </div>
                                 <div
                                     style="margin-top:.75rem;padding:.75rem;background:var(--s2);border:1px solid var(--border);border-radius:var(--rsm)">
                                     <div
                                         style="display:flex;justify-content:space-between;font-size:12px;color:var(--ink2)">
-                                        <span>Backup folder size</span>
+                                        <span>{{ __('messages.backup_folder_size') }}</span>
                                         <span style="font-family:var(--mono);font-weight:600"
                                             x-text="status.backup_folder_size || '—'"></span>
                                     </div>
@@ -397,9 +396,9 @@
                     {{-- CLOUD CONFIG --}}
                     <div class="card">
                         <div class="card-head">
-                            <div class="card-title"><i class="fas fa-cloud"></i> Cloud Configuration</div>
+                            <div class="card-title"><i class="fas fa-cloud"></i> {{ __('messages.cloud_configuration') }}</div>
                             <button type="button" class="btn btn-primary btn-sm" @click="saveCloudConfig()">
-                                <i class="fas fa-floppy-disk"></i> Save
+                                <i class="fas fa-floppy-disk"></i> {{ __('messages.save') }}
                             </button>
                         </div>
                         <div class="card-body">
@@ -409,24 +408,24 @@
                                     :class="cloudConfig.provider === 'gdrive' ? 'active' : ''"
                                     @click="cloudConfig.provider='gdrive'">
                                     <span class="cloud-btn-icon">🗂️</span>
-                                    <div class="cloud-btn-label">Google Drive</div>
-                                    <div class="cloud-btn-sub" x-text="cloudQuota.free + ' free'">
+                                    <div class="cloud-btn-label">{{ __('messages.google_drive') }}</div>
+                                    <div class="cloud-btn-sub" x-text="cloudQuota.free + ' {{ __('messages.free') }}'">
                                     </div>
                                 </button>
                                 <button type="button" class="cloud-btn"
                                     :class="cloudConfig.provider === 'dropbox' ? 'active' : ''"
                                     @click="cloudConfig.provider='dropbox'">
                                     <span class="cloud-btn-icon">📦</span>
-                                    <div class="cloud-btn-label">Dropbox</div>
-                                    <div class="cloud-btn-sub" x-text="dropboxQuota.free || 'Loading...'">
+                                    <div class="cloud-btn-label">{{ __('messages.dropbox') }}</div>
+                                    <div class="cloud-btn-sub" x-text="dropboxQuota.free || '{{ __('messages.loading') }}...'">
                                     </div>
                                 </button>
                                 <button type="button" class="cloud-btn"
                                     :class="cloudConfig.provider === 'ftp' ? 'active' : ''"
                                     @click="cloudConfig.provider='ftp'">
                                     <span class="cloud-btn-icon">🖥️</span>
-                                    <div class="cloud-btn-label">FTP Server</div>
-                                    <div class="cloud-btn-sub">Custom server</div>
+                                    <div class="cloud-btn-label">{{ __('messages.ftp_server') }}</div>
+                                    <div class="cloud-btn-sub">{{ __('messages.custom_server') }}</div>
                                 </button>
                             </div>
 
@@ -434,19 +433,19 @@
                             <div x-show="cloudConfig.provider==='gdrive'" x-cloak>
                                 <div class="form-grid">
                                     <div>
-                                        <label class="field-label">Service Account JSON Path</label>
+                                        <label class="field-label">{{ __('messages.service_account_json_path') }}</label>
                                         <input type="text" class="field-input" x-model="cloudConfig.gdrive_key"
                                             placeholder="storage/google-service-account.json">
-                                        <div class="field-hint">Path to your Google service account credentials file</div>
+                                        <div class="field-hint">{{ __('messages.service_account_hint') }}</div>
                                     </div>
                                     <div>
-                                        <label class="field-label">Drive Folder ID</label>
+                                        <label class="field-label">{{ __('messages.drive_folder_id') }}</label>
                                         <input type="text" class="field-input" x-model="cloudConfig.gdrive_folder"
                                             placeholder="1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs">
                                     </div>
                                 </div>
                                 <div class="config-env" style="margin-top:.75rem">
-                                    <div class="env-title">Current .env Configuration</div>
+                                    <div class="env-title">{{ __('messages.current_env_configuration') }}</div>
 
                                     <div class="env-line">
                                         FILESYSTEM_CLOUD=
@@ -455,22 +454,22 @@
 
                                     <div class="env-line">
                                         GOOGLE_DRIVE_CLIENT_ID=
-                                        <span x-text="cloudConfig.client_id || 'Not set'"></span>
+                                        <span x-text="cloudConfig.client_id || '{{ __('messages.not_set') }}'"></span>
                                     </div>
 
                                     <div class="env-line">
                                         GOOGLE_DRIVE_CLIENT_SECRET=
-                                        <span x-text="cloudConfig.client_secret ? '••••••••' : 'Not set'"></span>
+                                        <span x-text="cloudConfig.client_secret ? '••••••••' : '{{ __('messages.not_set') }}'"></span>
                                     </div>
 
                                     <div class="env-line">
                                         GOOGLE_DRIVE_REFRESH_TOKEN=
-                                        <span x-text="cloudConfig.refresh_token ? 'Configured' : 'Not set'"></span>
+                                        <span x-text="cloudConfig.refresh_token ? '{{ __('messages.configured') }}' : '{{ __('messages.not_set') }}'"></span>
                                     </div>
 
                                     <div class="env-line">
                                         GOOGLE_DRIVE_FOLDER_ID=
-                                        <span x-text="cloudConfig.folder_id || 'Not set'"></span>
+                                        <span x-text="cloudConfig.folder_id || '{{ __('messages.not_set') }}'"></span>
                                     </div>
                                 </div>
                             </div>
@@ -479,20 +478,20 @@
                             <div x-show="cloudConfig.provider==='dropbox'" x-cloak>
                                 <div class="form-grid">
                                     <div>
-                                        <label class="field-label">Access Token</label>
+                                        <label class="field-label">{{ __('messages.access_token') }}</label>
                                         <input type="password" class="field-input" x-model="cloudConfig.dropbox_token"
                                             placeholder="sl.xxxxxx…">
                                     </div>
                                     <div>
-                                        <label class="field-label">Backup Folder Path</label>
+                                        <label class="field-label">{{ __('messages.backup_folder_path') }}</label>
                                         <input type="text" class="field-input" x-model="cloudConfig.dropbox_path"
                                             placeholder="/afghan-pos-backups">
                                     </div>
                                 </div>
                                 <div class="config-env" style="margin-top:.75rem">
-                                    <div class="env-title">Add to your .env file</div>
+                                    <div class="env-title">{{ __('messages.add_to_env_file') }}</div>
                                     <div class="env-line">FILESYSTEM_CLOUD=<span>dropbox</span></div>
-                                    <div class="env-line">DROPBOX_AUTH_TOKEN=<span>your_access_token</span></div>
+                                    <div class="env-line">DROPBOX_AUTH_TOKEN=<span>{{ __('messages.your_access_token') }}</span></div>
                                 </div>
                             </div>
 
@@ -500,37 +499,37 @@
                             <div x-show="cloudConfig.provider==='ftp'" x-cloak>
                                 <div class="form-grid form-2">
                                     <div>
-                                        <label class="field-label">Host</label>
+                                        <label class="field-label">{{ __('messages.host') }}</label>
                                         <input type="text" class="field-input" x-model="cloudConfig.ftp_host"
                                             placeholder="ftp.example.com">
                                     </div>
                                     <div>
-                                        <label class="field-label">Port</label>
+                                        <label class="field-label">{{ __('messages.port') }}</label>
                                         <input type="number" class="field-input" x-model="cloudConfig.ftp_port"
                                             placeholder="21">
                                     </div>
                                     <div>
-                                        <label class="field-label">Username</label>
+                                        <label class="field-label">{{ __('messages.username') }}</label>
                                         <input type="text" class="field-input" x-model="cloudConfig.ftp_user"
                                             placeholder="ftpuser">
                                     </div>
                                     <div>
-                                        <label class="field-label">Password</label>
+                                        <label class="field-label">{{ __('messages.password') }}</label>
                                         <input type="password" class="field-input" x-model="cloudConfig.ftp_pass"
                                             placeholder="••••••••">
                                     </div>
                                     <div style="grid-column:span 2">
-                                        <label class="field-label">Remote Path</label>
+                                        <label class="field-label">{{ __('messages.remote_path') }}</label>
                                         <input type="text" class="field-input" x-model="cloudConfig.ftp_path"
                                             placeholder="/backups/afghan-pos">
                                     </div>
                                 </div>
                                 <div class="config-env" style="margin-top:.75rem">
-                                    <div class="env-title">Add to your .env file</div>
+                                    <div class="env-title">{{ __('messages.add_to_env_file') }}</div>
                                     <div class="env-line">FILESYSTEM_CLOUD=<span>ftp</span></div>
-                                    <div class="env-line">FTP_HOST=<span>your_ftp_host</span></div>
-                                    <div class="env-line">FTP_USERNAME=<span>your_username</span></div>
-                                    <div class="env-line">FTP_PASSWORD=<span>your_password</span></div>
+                                    <div class="env-line">FTP_HOST=<span>{{ __('messages.your_ftp_host') }}</span></div>
+                                    <div class="env-line">FTP_USERNAME=<span>{{ __('messages.your_username') }}</span></div>
+                                    <div class="env-line">FTP_PASSWORD=<span>{{ __('messages.your_password') }}</span></div>
                                 </div>
                             </div>
 
@@ -538,7 +537,7 @@
                             <div style="display:flex;gap:8px;margin-top:1rem">
                                 <button type="button" class="btn btn-ghost" style="flex:1"
                                     @click="testCloudConnection()">
-                                    <i class="fas fa-plug"></i> Test Connection
+                                    <i class="fas fa-plug"></i> {{ __('messages.test_connection') }}
                                 </button>
                             </div>
                             <div x-show="cloudTestResult" x-cloak
@@ -559,31 +558,30 @@
         <div class="modal-overlay" x-show="showRestoreModal" x-cloak @click.self="showRestoreModal=false">
             <div class="modal-card">
                 <div class="modal-head">
-                    <div class="modal-title">Restore Backup</div>
+                    <div class="modal-title">{{ __('messages.restore_backup') }}</div>
                     <button class="modal-close" @click="showRestoreModal=false"><i class="fas fa-times"></i></button>
                 </div>
                 <div class="modal-body">
                     <div class="warn-box">
                         <i class="fas fa-triangle-exclamation" style="flex-shrink:0;margin-top:1px"></i>
                         <div>
-                            <strong>Warning — this will overwrite your current database.</strong><br>
-                            All data created after this backup was made will be permanently lost.
-                            We strongly recommend running a fresh backup before restoring.
+                            <strong>{{ __('messages.restore_warning_title') }}</strong><br>
+                            {{ __('messages.restore_warning_description') }}
                         </div>
                     </div>
                     <div class="restore-file-info">
-                        <div class="rfi-row"><span>File</span><span class="rfi-val" x-text="restoreTarget?.name"></span>
+                        <div class="rfi-row"><span>{{ __('messages.file') }}</span><span class="rfi-val" x-text="restoreTarget?.name"></span>
                         </div>
-                        <div class="rfi-row"><span>Size</span><span class="rfi-val" x-text="restoreTarget?.size"></span>
+                        <div class="rfi-row"><span>{{ __('messages.size') }}</span><span class="rfi-val" x-text="restoreTarget?.size"></span>
                         </div>
-                        <div class="rfi-row"><span>Created</span><span class="rfi-val"
+                        <div class="rfi-row"><span>{{ __('messages.created') }}</span><span class="rfi-val"
                                 x-text="restoreTarget?.created_at"></span></div>
-                        <div class="rfi-row"><span>Type</span><span class="rfi-val"
-                                x-text="restoreTarget?.cloud ? 'Cloud + Local' : 'Local'"></span></div>
+                        <div class="rfi-row"><span>{{ __('messages.type') }}</span><span class="rfi-val"
+                                x-text="restoreTarget?.cloud ? '{{ __('messages.cloud_local') }}' : '{{ __('messages.local') }}'"></span></div>
                     </div>
                     <div style="margin-bottom:.75rem">
-                        <label class="field-label">Type <strong
-                                style="font-family:var(--mono);color:var(--red)">RESTORE</strong> to confirm</label>
+                        <label class="field-label">{{ __('messages.type_restore_to_confirm') }} <strong
+                                style="font-family:var(--mono);color:var(--red)">RESTORE</strong></label>
                         <input type="text" class="field-input" x-model="restoreConfirmText" placeholder="RESTORE">
                     </div>
                     <div x-show="restoreError" x-cloak
@@ -591,11 +589,11 @@
                         x-text="restoreError"></div>
                 </div>
                 <div class="modal-foot">
-                    <button type="button" class="btn btn-ghost" @click="showRestoreModal=false">Cancel</button>
+                    <button type="button" class="btn btn-ghost" @click="showRestoreModal=false">{{ __('messages.cancel') }}</button>
                     <button type="button" class="btn btn-danger" @click="confirmRestore()"
                         :disabled="restoreConfirmText !== 'RESTORE' || restoreSaving">
                         <i class="fas fa-spinner fa-spin" x-show="restoreSaving"></i>
-                        <span x-text="restoreSaving ? 'Restoring…' : 'Restore Database'"></span>
+                        <span x-text="restoreSaving ? '{{ __('messages.restoring') }}…' : '{{ __('messages.restore_database') }}'"></span>
                     </button>
                 </div>
             </div>
@@ -603,7 +601,6 @@
 
     </div>{{-- /bk --}}
 @endsection
-
 @push('scripts')
     <script>
         document.addEventListener('alpine:init', () => {
@@ -983,7 +980,8 @@
                                 'X-CSRF-TOKEN': this.urls.csrf
                             },
                             body: JSON.stringify({
-                                path: this.restoreTarget.path
+                                path: this.restoreTarget.path,
+                                confirm: this.restoreConfirmText
                             })
                         });
                         const d = await r.json();

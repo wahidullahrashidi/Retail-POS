@@ -1174,3 +1174,45 @@
             align-items: center;
             gap: 6px;
         }
+.rtl-table{
+    direction: rtl;
+}
+
+.rtl-table th,
+.rtl-table td{
+    text-align: right;
+}
+
+.rtl-table .cell-right{
+    text-align: left;
+}
+
+.rtl-table .sup-cell{
+    flex-direction: row-reverse;
+}
+
+.rtl-table .row-acts{
+    justify-content: flex-start;
+}
+
+.rtl-table .sup-av{
+    margin-left: 12px;
+    margin-right: 0;
+}
+
+.rtl-table{
+    direction: rtl;
+}
+
+.rtl-table th,
+.rtl-table td{
+    text-align: right;
+}
+
+.rtl-table .cell-right{
+    text-align: left !important;
+}
+
+.rtl-table .row-acts{
+    justify-content: flex-start;
+}

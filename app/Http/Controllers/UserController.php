@@ -70,7 +70,8 @@ class UserController extends Controller
                 DB::raw('users.pin_code IS NOT NULL AND users.pin_code != "" as has_pin'),
                 DB::raw('COALESCE(roles.name, "user") as role_name'),
                 DB::raw('COALESCE(roles.display_name, "User") as role_display'),
-                'roles.permissions',
+                'users.permissions as user_permissions',
+                'roles.permissions as role_permissions',
                 DB::raw('COALESCE(sa.sale_count, 0) as sale_count'),
                 DB::raw('COALESCE(sa.total_sales, 0) as total_sales'),
                 DB::raw('COALESCE(sh.shift_count, 0) as shift_count'),
@@ -103,9 +104,7 @@ class UserController extends Controller
             'role_id'      => $u->role_id,
             'role_name'    => $u->role_name,
             'role_display' => $u->role_display,
-            'permissions'  => is_string($u->permissions)
-                ? json_decode($u->permissions, true)
-                : ($u->permissions ?? []),
+            'permissions'  => $this->mergePermissions($u->role_permissions, $u->user_permissions),
             'has_pin'      => (bool)$u->has_pin,
             'is_active'    => (bool)$u->is_active,
             'sale_count'   => (int)$u->sale_count,
@@ -196,7 +195,7 @@ class UserController extends Controller
                 'username'    => $username,
                 'email'       => $request->email,
                 'role_id'     => $request->role_id,
-                'permissions' => json_encode($permissions),
+                'permissions' => $permissions,
             ];
 
             if ($photoPath)             $fields['photo']    = $photoPath;
@@ -267,9 +266,7 @@ class UserController extends Controller
         $shiftCount  = Shift::where('user_id', $user->id)->count();
 
         $role        = $user->role;
-        $permissions = is_string($role?->permissions)
-            ? json_decode($role->permissions, true)
-            : ($role?->permissions ?? []);
+        $permissions = $this->mergePermissions($role?->permissions, $user->permissions);
 
         return response()->json([
             'user' => [
@@ -339,5 +336,18 @@ class UserController extends Controller
             'success'   => true,
             'is_active' => $user->is_active,
         ]);
+    }
+
+    private function mergePermissions(mixed $rolePermissions, mixed $userPermissions): array
+    {
+        $rolePermissions = is_string($rolePermissions)
+            ? (json_decode($rolePermissions, true) ?: [])
+            : ($rolePermissions ?? []);
+
+        $userPermissions = is_string($userPermissions)
+            ? (json_decode($userPermissions, true) ?: [])
+            : ($userPermissions ?? []);
+
+        return array_values(array_unique(array_merge($rolePermissions, $userPermissions)));
     }
 }

@@ -1,19 +1,21 @@
-﻿@extends('layouts.app')
+@extends('layouts.app')
 
 @push('styles')
-    @vite(['resources/css/app.css'])
+    @if(file_exists(public_path('build/manifest.json')) || file_exists(public_path('hot'))) @vite(['resources/css/app.css']) @endif
 @endpush
 
 @section('content')
     <div class="dash-root">
 
-        {{-- ══════════════════════════════
+        {{-- ------------------------------
          TOPBAR
-    ══════════════════════════════ --}}
+    ------------------------------ --}}
         <div class="topbar">
             <div class="topbar-left">
-                <h1 class="afg-pos">{{ __('messages.afghan_pos') }} <em style="font-style:italic;color:var(--gold);">{{ __('messages.dashboard') }}</em></h1>
-                <p class="afg-pos">{{ __('messages.welcome_back') }}</p>
+            <div class="st-title">Afghan <em>POS</em> — {{ __('messages.dashboard') }}</div>
+                
+                {{-- <h1 class="afg-pos">{{ __('messages.afghan_pos') }} - <em style="font-style:italic;color:var(--gold);">{{ __('messages.dashboard') }}</em></h1> --}}
+                {{-- <p class="afg-pos">{{ __('messages.welcome_back') }}</p> --}}
             </div>
             <div class="topbar-right">
                 {{-- <div class="live-clock" id="liveClock">--:--:--</div> --}}
@@ -26,7 +28,7 @@
 
         <div class="dash-body">
 
-            {{-- ══ LEFT COLUMN ══ --}}
+            {{-- -- LEFT COLUMN -- --}}
             <div class="col-left">
 
                 {{-- STAT CARDS --}}
@@ -161,7 +163,7 @@
                         {{-- <div class="search-row">
                             <div class="search-wrap">
                                 <i class="fas fa-barcode"></i>
-                                <input class="search-input" type="text" x-model="query" @input.debounce.400ms="search()"
+                                <input class="search-input" type="search" autocomplete="off" autocapitalize="off" spellcheck="false" x-model="query" @input.debounce.400ms="search()"
                                     @keydown.enter="search()" @keydown.escape="clearSearch()"
                                     placeholder="{{ __('messages.search_placeholder') }}">
                             </div>
@@ -178,7 +180,7 @@
                             <i class="fas fa-spinner fa-spin"></i> {{ __('messages.searching') }}
                         </div> --}}
 
-                        {{-- ── SEARCH RESULTS ── --}}
+                        {{-- -- SEARCH RESULTS -- --}}
                         {{-- <div x-show="query && !searching" x-cloak>
                             <div class="no-results" x-show="searchResults.length === 0">
                                 <i class="fas fa-magnifying-glass"></i>
@@ -228,7 +230,7 @@
                             </div>
                         </div> --}}
 
-                        {{-- ── TRENDING ── --}}
+                        {{-- -- TRENDING -- --}}
                         {{-- <div x-show="!query" x-cloak> --}}
                             {{-- <div class="section-row">
                                 <div class="section-label">
@@ -266,7 +268,7 @@
                             </div> --}}
                         {{-- </div> --}}
 
-                        {{-- ── CART ── --}}
+                        {{-- -- CART -- --}}
                         {{-- <div x-show="cart.length > 0" x-cloak style="margin-top:.75rem">
                             <div class="section-row">
                                 <div class="section-label"><i class="fas fa-cart-shopping"></i> Cart</div>
@@ -374,218 +376,159 @@
                 </div> --}}
 
                 {{-- RECENT TRANSACTIONS --}}
-                <div class="card">
-                    <div class="card-head">
-                        <div class="card-head-title">
-                            <i class="fas fa-receipt"></i>
-                            Recent Transactions
-                        </div>
-                        <span class="card-head-badge">Last 5 sales</span>
+<div class="card">
+    <div class="card-head">
+        <div class="card-head-title">
+            <i class="fas fa-receipt"></i>
+            {{ __('messages.recent_transaction') }}
+        </div>
+        <span class="card-head-badge">{{ __('messages.last_5_sales') }}</span>
+    </div>
+    <div style="overflow-x:auto">
+        <table class="txn-table {{ app()->getLocale() === 'ps' || app()->getLocale() === 'dr' ? 'rtl-table' : '' }}">
+    <thead>
+        <tr class="tb-head">
+            <th>{{ __('messages.address') }}</th>
+            <th>{{ __('messages.customer') }}</th>
+            <th>{{ __('messages.time') }}</th>
+            <th>{{ __('messages.method') }}</th>
+            <th class="text-right">{{ __('messages.amount') }}</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @forelse($recentTransactions as $rt)
+            @php
+                $parts = array_values(array_filter(explode(' ', trim($rt->customer_name))));
+                $initials =
+                    count($parts) === 1
+                        ? strtoupper(substr($parts[0], 0, 2))
+                        : strtoupper(
+                            collect($parts)->map(fn($p) => substr($p, 0, 1))->join(''),
+                        );
+            @endphp
+            <tr>
+                <td><span class="txn-id">{{ $rt->address ?? '---' }}</span></td>
+                <td>
+                    <div class="customer-cell">
+                        <div class="avatar">{{ $initials }}</div>
+                        <span style="font-weight:500">{{ $rt->customer_name }}</span>
                     </div>
-                    <div style="overflow-x:auto">
-                        <table class="txn-table">
-                            <thead >
-                                <tr class="tb-head">
-                                    <th class="r">Address</th>
-                                    <th class="r">Customer</th>
-                                    <th class="r">Time</th>
-                                    <th class="r">Method</th>
-                                    <th class="r" class="text-right">Amount</th>
-                                    <th class="r"></th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @forelse($recentTransactions as $rt)
-                                    @php
-                                        $parts = array_values(array_filter(explode(' ', trim($rt->customer_name))));
-                                        $initials =
-                                            count($parts) === 1
-                                                ? strtoupper(substr($parts[0], 0, 2))
-                                                : strtoupper(
-                                                    collect($parts)->map(fn($p) => substr($p, 0, 1))->join(''),
-                                                );
-                                    @endphp
-                                    <tr>
-                                        <td><span class="txn-id">{{ $rt->address ?? '—' }}</span></td>
-                                        <td>
-                                            <div class="customer-cell">
-                                                <div class="avatar">{{ $initials }}</div>
-                                                <span style="font-weight:500">{{ $rt->customer_name }}</span>
-                                            </div>
-                                        </td>
-                                        <td class="time-cell">
-                                            {{ \Carbon\Carbon::parse($rt->created_at)->diffForHumans() }}</td>
-                                        <td>
-                                            <span class="badge {{ $rt->type === 'loan' ? 'badge-loan' : 'badge-cash' }}">
-                                                {{ ucfirst($rt->type ?? 'cash') }}
-                                            </span>
-                                        </td>
-                                        <td class="amount-cell" style="color:var(--gold)">
-                                            Af {{ number_format($rt->amount) }}
-                                        </td>
-                                        <td class="text-center">
-                                            <button
-                                                style="background:none;border:none;cursor:pointer;color:var(--text-3);font-size:13px">
-                                                <i class="fas fa-ellipsis-vertical"></i>
-                                            </button>
-                                        </td>
-                                    </tr>
-                                @empty
-                                    <tr>
-                                        <td colspan="6"
-                                            style="text-align:center;padding:2rem;color:var(--text-3);font-size:12px">
-                                            No transactions yet today.
-                                        </td>
-                                    </tr>
-                                @endforelse
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+                </td>
+                <td class="time-cell">
+    {{
+        \Carbon\Carbon::parse($rt->created_at)
+            ->locale(app()->getLocale() === 'dr' ? 'fa' : app()->getLocale())
+            ->diffForHumans()
+    }}
+</td>
+                <td>
+                    <span class="badge {{ $rt->type === 'loan' ? 'badge-loan' : 'badge-cash' }}">
+                        {{ $rt->type === 'loan' ? __('messages.loan') : __('messages.cash') }}
+                    </span>
+                </td>
+                <td class="amount-cell" style="color:var(--gold)">
+                    Af {{ number_format($rt->amount) }}
+                </td>
+                <td class="text-center">
+                    <button style="background:none;border:none;cursor:pointer;color:var(--text-3);font-size:13px">
+                        <i class="fas fa-ellipsis-vertical"></i>
+                    </button>
+                </td>
+            </tr>
+        @empty
+            <tr>
+                <td colspan="6" style="text-align:center;padding:2rem;color:var(--text-3);font-size:12px">
+                    {{ __('messages.no_transactions_yet') }}
+                </td>
+            </tr>
+        @endforelse
+    </tbody>
+</table>
+    </div>
+</div>
+</div>
+{{-- /col-left --}}
 
+{{-- -- RIGHT COLUMN -- --}}
+<div class="col-right">
+
+    {{-- SHIFT SUMMARY --}}
+    <div class="card">
+        <div class="card-head">
+            <div class="card-head-title">
+                <i class="fas fa-clock"></i> {{ __('messages.shift_summary') }}
             </div>
-            {{-- /col-left --}}
-
-            {{-- ══ RIGHT COLUMN ══ --}}
-            <div class="col-right">
-
-                {{-- SHIFT SUMMARY --}}
-                <div class="card">
-                    <div class="card-head">
-                        <div class="card-head-title">
-                            <i class="fas fa-clock"></i> Shift Summary
-                        </div>
-                        <span class="card-head-badge"
-                            style="color:var(--green);border-color:rgba(34,197,94,.2);background:var(--green-dim)">
-                            Active
-                        </span>
-                    </div>
-                    <div class="shift-card">
-                        <div class="shift-stats">
-                            <div class="shift-stat">
-                                <div class="shift-stat-label">Sales Today</div>
-                                <div class="shift-stat-val" style="color:var(--gold)">Af {{ number_format($todaySales) }}
-                                </div>
-                            </div>
-                            <div class="shift-stat">
-                                <div class="shift-stat-label">Customers</div>
-                                <div class="shift-stat-val">{{ $todaysCustomers }}</div>
-                            </div>
-                            <div class="shift-stat">
-                                <div class="shift-stat-label">Net Profit</div>
-                                <div class="shift-stat-val" style="color:var(--green)">Af
-                                    {{ number_format($netProfitToday) }}</div>
-                            </div>
-                            <div class="shift-stat">
-                                <div class="shift-stat-label">Active Loans</div>
-                                <div class="shift-stat-val" style="color:var(--amber)">Af {{ number_format($loanToday) }}
-                                </div>
-                            </div>
-                        </div>
+            <span class="card-head-badge"
+                style="color:var(--green);border-color:rgba(34,197,94,.2);background:var(--green-dim)">
+                {{ __('messages.active') }}
+            </span>
+        </div>
+        <div class="shift-card">
+            <div class="shift-stats">
+                <div class="shift-stat">
+                    <div class="shift-stat-label">{{ __('messages.sales_today') }}</div>
+                    <div class="shift-stat-val" style="color:var(--gold)">Af {{ number_format($todaySales) }}
                     </div>
                 </div>
-
-                {{-- LOW STOCK ALERTS --}}
-                <div class="card">
-                    <div class="card-head">
-                        <div class="card-head-title">
-                            <i class="fas fa-triangle-exclamation" style="color:var(--red)"></i>
-                            Low Stock Alerts
-                        </div>
-                        <span class="card-head-badge"
-                            style="color:var(--red);border-color:rgba(239,68,68,.2);background:var(--red-dim)">
-                            {{ $lowStock->count() }} item(s)
-                        </span>
-                    </div>
-                    <div class="stock-list">
-                        @forelse($lowStock as $stock)
-                            @php
-                                $pct = min(
-                                    100,
-                                    ($stock->stock_quantity / max(1, $stock->low_stock_threshold ?? 10)) * 100,
-                                );
-                            @endphp
-                            <div class="stock-item">
-                                <div>
-                                    <div class="stock-sku">{{ $stock->sku }}</div>
-                                    <div class="stock-min">Min: {{ $stock->low_stock_threshold ?? 10 }}</div>
-                                    <div class="stock-bar">
-                                        <div class="stock-bar-fill" style="width: {{ $pct }}%"></div>
-                                    </div>
-                                </div>
-                                <div class="stock-qty">{{ $stock->stock_quantity }}</div>
-                            </div>
-                        @empty
-                            <div class="empty-state" style="padding:1rem">
-                                <i class="fas fa-check-circle" style="color:var(--green)"></i>
-                                All stock levels healthy
-                            </div>
-                        @endforelse
-                    </div>
-                    @if ($lowStock->count())
-                    {{-- <a href="{{ route('pos.inventory.purchase.store') }}">
-                        <button class="btn-purchase">
-                            <i class="fas fa-truck-fast" style="margin-right:6px"></i>
-                            Create Purchase Order
-                        </button>
-                    </a> --}}
-                    @endif
+                <div class="shift-stat">
+                    <div class="shift-stat-label">{{ __('messages.customers') }}</div>
+                    <div class="shift-stat-val">{{ $todaysCustomers }}</div>
                 </div>
-
-                {{-- HARDWARE STATUS --}}
-                {{-- <div class="card">
-                    <div class="card-head">
-                        <div class="card-head-title">
-                            <i class="fas fa-microchip"></i> Hardware Status
-                        </div>
-                        <span class="card-head-badge">Live</span>
+                <div class="shift-stat">
+                    <div class="shift-stat-label">{{ __('messages.net_profit') }}</div>
+                    <div class="shift-stat-val" style="color:var(--green)">Af
+                        {{ number_format($netProfitToday) }}</div>
+                </div>
+                <div class="shift-stat">
+                    <div class="shift-stat-label">{{ __('messages.active_loans') }}</div>
+                    <div class="shift-stat-val" style="color:var(--amber)">Af {{ number_format($loanToday) }}
                     </div>
-                    <div class="hw-list">
-                        <div class="hw-item">
-                            <div class="hw-left">
-                                <div class="hw-icon ok"><i class="fas fa-print"></i></div>
-                                <div>
-                                    <div class="hw-name">Receipt Printer</div>
-                                    <div class="hw-time">Checked 2m ago</div>
-                                </div>
-                            </div>
-                            <div class="hw-dot ok"></div>
-                        </div>
-                        <div class="hw-item">
-                            <div class="hw-left">
-                                <div class="hw-icon ok"><i class="fas fa-barcode"></i></div>
-                                <div>
-                                    <div class="hw-name">Barcode Scanner</div>
-                                    <div class="hw-time">Checked 1h ago</div>
-                                </div>
-                            </div>
-                            <div class="hw-dot ok"></div>
-                        </div>
-                        <div class="hw-item">
-                            <div class="hw-left">
-                                <div class="hw-icon warn"><i class="fas fa-cash-register"></i></div>
-                                <div>
-                                    <div class="hw-name">Cash Drawer</div>
-                                    <div class="hw-time">Checked 10:00 AM</div>
-                                </div>
-                            </div>
-                            <div class="hw-dot warn"></div>
-                        </div>
-                        <div class="hw-item">
-                            <div class="hw-left">
-                                <div class="hw-icon ok"><i class="fas fa-credit-card"></i></div>
-                                <div>
-                                    <div class="hw-name">Card Terminal</div>
-                                    <div class="hw-time">Checked 5m ago</div>
-                                </div>
-                            </div>
-                            <div class="hw-dot ok"></div>
-                        </div>
-                    </div>
-                </div> --}}
-
+                </div>
             </div>
-            {{-- /col-right --}}
+        </div>
+    </div>
+
+    {{-- LOW STOCK ALERTS --}}
+    <div class="card">
+        <div class="card-head">
+            <div class="card-head-title">
+                <i class="fas fa-triangle-exclamation" style="color:var(--red)"></i>
+                {{ __('messages.low_stock_alert') }}
+            </div>
+            <span class="card-head-badge"
+                style="color:var(--red);border-color:rgba(239,68,68,.2);background:var(--red-dim)">
+                {{ $lowStock->count() }} {{ __('messages.items') }}
+            </span>
+        </div>
+        <div class="stock-list">
+            @forelse($lowStock as $stock)
+                @php
+                    $pct = min(
+                        100,
+                        ($stock->stock_quantity / max(1, $stock->low_stock_threshold ?? 10)) * 100,
+                    );
+                @endphp
+                <div class="stock-item">
+                    <div>
+                        <div class="stock-sku">{{ $stock->sku }}</div>
+                        <div class="stock-min">Min: {{ $stock->low_stock_threshold ?? 10 }}</div>
+                        <div class="stock-bar">
+                            <div class="stock-bar-fill" style="width: {{ $pct }}%"></div>
+                        </div>
+                    </div>
+                    <div class="stock-qty">{{ $stock->stock_quantity }}</div>
+                </div>
+            @empty
+                <div class="empty-state" style="padding:1rem">
+                    <i class="fas fa-check-circle" style="color:var(--green)"></i>
+                    {{ __('messages.all_stock_level_healthy') }}
+                </div>
+            @endforelse
+        </div>
+    </div>
+</div>
+{{-- /col-right --}}
 
         </div>
         {{-- /dash-body --}}
@@ -597,7 +540,7 @@
 
 @push('scripts')
     <script>
-        /* ── Live clock ── */
+        /* -- Live clock -- */
         (function tick() {
             const el = document.getElementById('liveClock');
             if (el) {
@@ -607,7 +550,7 @@
             setTimeout(tick, 1000);
         })();
 
-        /* ── Cart System ── */
+        /* -- Cart System -- */
         function cartSystem() {
             return {
                 query: '',

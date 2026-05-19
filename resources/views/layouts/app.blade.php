@@ -1,6 +1,6 @@
 @php
     $currentLocale = app()->getLocale();
-    $isRtl = in_array($currentLocale, ['ps', 'dr'], true);
+    $isRtl = in_array($currentLocale, ['ps', 'dr', 'fa'], true);
 @endphp
 <!DOCTYPE html>
 <html lang="{{ $currentLocale }}" dir="{{ $isRtl ? 'rtl' : 'ltr' }}" x-data="appShell()" :class="darkMode ? 'dark' : ''" x-init="init()">
@@ -22,6 +22,8 @@
 
     {{-- Fonts --}}
     <link rel="preconnect" href="https://fonts.googleapis.com">
+    <!-- ApexCharts CDN -->
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
     <link
         href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&family=Playfair+Display:ital,wght@0,700;1,400&display=swap"
         rel="stylesheet">
@@ -49,8 +51,8 @@
             }
         }
     </script>
-    @vite(['resources/css/layout/app-shell.css'])
-    @vite(['resources/css/layout/theme.css'])
+    @if(file_exists(public_path('build/manifest.json')) || file_exists(public_path('hot'))) @vite(['resources/css/layout/app-shell.css']) @endif
+    @if(file_exists(public_path('build/manifest.json')) || file_exists(public_path('hot'))) @vite(['resources/css/layout/theme.css']) @endif
 
     @stack('styles')
     <style>
@@ -867,9 +869,9 @@
         }
 
         /* RTL support for Pashto/Dari */
-        [dir="rtl"] .sb-item {
+        /* [dir="rtl"] .sb-item {
             flex-direction: row-reverse;
-        }
+        } */
 
         [dir="rtl"] .sb-item.active::before {
             left: auto;
@@ -1069,6 +1071,46 @@
             border-left: 1px solid #e2e8f0;
         }
 
+        .shell.collapsed .sb-section-label {
+            justify-content: center !important;
+            opacity: 1 !important;
+            padding-inline: .5rem !important;
+        }
+
+        .shell.collapsed .sb-section-label .sb-label-text {
+            display: none !important;
+        }
+
+        .shell.collapsed .sb-toggle {
+            margin-inline: auto !important;
+            color: #4a5270 !important;
+            background: #f1f3f8 !important;
+        }
+
+        .dark .shell.collapsed .sb-toggle {
+            color: #e8eaf0 !important;
+            background: rgba(255, 255, 255, .08) !important;
+        }
+
+        [dir="rtl"] .sb-logo,
+        [dir="rtl"] .sb-section-label,
+        [dir="rtl"] .sb-foot button,
+        [dir="rtl"] .header-left,
+        [dir="rtl"] .header-right,
+        [dir="rtl"] .footer-left,
+        [dir="rtl"] .footer-right {
+            direction: rtl;
+        }
+
+        [dir="rtl"] .sb-toggle i,
+        [dir="rtl"] .hdr-hamburger i {
+            transform: scaleX(-1);
+        }
+
+        [dir="rtl"] .shell.collapsed .sb-toggle i {
+            transform: scaleX(-1) rotate(180deg);
+        }
+
         [dir="rtl"] .lang-menu {
             right: auto;
             left: 0;
@@ -1113,6 +1155,18 @@
                 max-width: none !important;
                 margin: 0 !important;
                 box-shadow: none !important;
+            }
+        }
+
+        @media (max-width: 768px) {
+            [dir="rtl"] #sidebar {
+                left: auto !important;
+                right: calc(-1 * var(--sidebar-w)) !important;
+            }
+
+            [dir="rtl"] .shell.mobile-open #sidebar {
+                left: auto !important;
+                right: 0 !important;
             }
         }
     </style>
@@ -1237,7 +1291,7 @@
                 },
 
                 applyLang() {
-                    const dir = (this.lang === 'ps' || this.lang === 'dr') ? 'rtl' : 'ltr';
+                    const dir = (this.lang === 'ps' || this.lang === 'dr' || this.lang === 'fa') ? 'rtl' : 'ltr';
                     document.documentElement.setAttribute('dir', dir);
                     document.documentElement.setAttribute('lang', this.lang);
                 },
@@ -1246,7 +1300,8 @@
                     return {
                         en: @json(__('messages.english')),
                         ps: @json(__('messages.pashto')),
-                        dr: @json(__('messages.dari'))
+                        dr: @json(__('messages.dari')),
+                        fa: @json(__('messages.dari'))
                     } [this.lang] || 'EN';
                 },
 

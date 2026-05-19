@@ -34,32 +34,39 @@ class DashboardController extends Controller
 
     private function getDashboardData(): array
     {
-        $yesterdaySales = Sale::whereDate('created_at', Carbon::yesterday())
+        $todayStart = today()->startOfDay();
+        $todayEnd = today()->endOfDay();
+        $yesterdayStart = Carbon::yesterday()->startOfDay();
+        $yesterdayEnd = Carbon::yesterday()->endOfDay();
+
+        $yesterdaySales = Sale::completed()
+            ->betweenDates($yesterdayStart, $yesterdayEnd)
             ->sum('total_amount');
 
-        $todaySales = Sale::whereDate('created_at', today())->sum('total_amount');
+        $todaySales = Sale::completed()
+            ->betweenDates($todayStart, $todayEnd)
+            ->sum('total_amount');
 
         // getting loans:
         // today
-        $todayLoan = Loan::whereDate('created_at', today())->sum('remaining_balance');
+        $todayLoan = Loan::whereBetween('created_at', [$todayStart, $todayEnd])->sum('remaining_balance');
 
         // yesterday:
-        $yesterdayLoan = Loan::whereDate('created_at', Carbon::yesterday())
+        $yesterdayLoan = Loan::whereBetween('created_at', [$yesterdayStart, $yesterdayEnd])
             ->sum('remaining_balance');
 
-        // profit:
-        $salesToday = SaleItem::salesToday();
-        $costToday = SaleItem::costOfTodaysSales();
+        $salesToday = $todaySales;
+        $costToday = $this->costOfGoods($todayStart, $todayEnd);
 
-        $salesYesterday = SaleItem::salesYesterday();
-        $costYesterday = SaleItem::costOfYesterday();
+        $salesYesterday = $yesterdaySales;
+        $costYesterday = $this->costOfGoods($yesterdayStart, $yesterdayEnd);
 
         $netProfitToday = $salesToday - $costToday;
         $netProfitYesterday = $salesYesterday - $costYesterday;
 
         // customers:
-        $customersToday = Customer::whereDate('created_at', today())->count();
-        $customersYesterday = Customer::whereDate('created_at', Carbon::yesterday())->count();
+        $customersToday = Customer::whereBetween('created_at', [$todayStart, $todayEnd])->count();
+        $customersYesterday = Customer::whereBetween('created_at', [$yesterdayStart, $yesterdayEnd])->count();
 
         // recent transactions:
 
@@ -71,7 +78,7 @@ class DashboardController extends Controller
         try {
             $netProfitPercentage = (($netProfitToday - $netProfitYesterday) / $netProfitYesterday) * 100;
             $loanPercentage = ($todayLoan - $yesterdayLoan)/$yesterdayLoan * 100;
-            $customersPercentage = ($customersYesterday - $customersToday)/$customersYesterday*100;
+            $customersPercentage = (($customersToday - $customersYesterday) / $customersYesterday) * 100;
 
         } catch (\DivisionByZeroError $e) {
             $netProfitPercentage = 100;
@@ -94,6 +101,15 @@ class DashboardController extends Controller
             'recentTransactions' => $transactions,
             'lowStock' => $lowStockItems
         ];
+    }
+
+    private function costOfGoods(Carbon $from, Carbon $to): float
+    {
+        return (float) SaleItem::join('sales', 'sales.id', '=', 'sale_items.sale_id')
+            ->whereBetween('sales.created_at', [$from, $to])
+            ->where('sales.status', 'completed')
+            ->where('sale_items.is_returned', false)
+            ->sum(DB::raw('sale_items.quantity * COALESCE(sale_items.cost_price, 0)'));
     }
 
     public function searchProducts(Request $request)
@@ -179,10 +195,9 @@ class DashboardController extends Controller
 
         // Pass cart to your checkout view or process it
         // Option A — show a checkout confirmation page:
-        return view('pos.checkout', [
-            'cartItems' => $cartItems,
-            'total'     => collect($cartItems)->sum(fn($i) => $i['price'] * $i['qty']),
-        ]);
+        session()->flash('checkout_cart', $cartItems);
+
+        return redirect()->route('pos.poscheck');
 
         // Option B — process immediately and create a Sale record:
         // $this->processSale($cartItems, $request);

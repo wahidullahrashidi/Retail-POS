@@ -1,4 +1,4 @@
-﻿@extends('layouts.app')
+@extends('layouts.app')
 
 @push('styles')
     @vite(['resources/css/app.css'])
@@ -8,13 +8,18 @@
     <div class="co" x-data="posCheckout()" x-init="init()" @keydown.f2.window="focusSearch()"
         @keydown.f4.window="openNumpad()" @keydown.f9.window="holdSale()" @keydown.f12.window="processCheckout()">
 
+
+        
         {{-- ════════ TOPBAR ════════ --}}
         <div class="co-topbar">
             <div class="co-topbar-left">
-                <a href="{{ route('pos.dashboard') }}" class="co-back-btn">
+                {{-- <a href="{{ route('pos.dashboard') }}" class="co-back-btn">
                     <i class="fas fa-arrow-left"></i> {{ __('messages.dashboard') }}
-                </a>
-                <div class="co-title">Afghan <span>POS</span> — {{ __('messages.pos_checkout') }}</div>
+                </a> --}}
+            <div class="st-title">Afghan <em>POS</em> — {{ __('messages.pos_checkout') }}</div>
+            {{-- <p class="afg-pos">{{ __('messages.welcome_back') }}</p> --}}
+
+                {{-- <div class="co-title">Afghan <span>POS</span> — {{ __('messages.pos_checkout') }}</div> --}}
             </div>
             <div class="co-topbar-right">
                 {{-- <div class="co-clock" id="coClock">--:--:--</div> --}}

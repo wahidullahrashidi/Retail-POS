@@ -12,20 +12,20 @@ return new class extends Migration
      */
     public function up(): void
     {
-        DB::statement("
+        if (config('database.default') === 'sqlite') {
+            Schema::table('inventory_adjustments', function (Blueprint $table) {
+                // سلیقې د اینم د تغیر لپاره دا طریقه کاروي
+                $table->string('adjustment_type')->change();
+            });
+        } else {
+            DB::statement("
             ALTER TABLE inventory_adjustments
             MODIFY adjustment_type ENUM(
-                'increase',
-                'decrease',
-                'correction',
-                'damage',
-                'expiry',
-                'return_to_supplier',
-                'sale_return'
+                'increase', 'decrease', 'correction', 'damage', 'expiry', 'return_to_supplier', 'sale_return'
             ) NOT NULL
         ");
+        }
     }
-
     /**
      * Reverse the migrations.
      */

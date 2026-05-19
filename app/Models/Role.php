@@ -22,4 +22,25 @@ class Role extends Model
     {
         return $this->hasMany(User::class);
     }
+
+    public function hasPermission(string $permission): bool
+    {
+        $permissions = $this->permissions ?? [];
+
+        if (in_array('*', $permissions, true)) {
+            return true;
+        }
+
+        foreach ($permissions as $allowed) {
+            if ($allowed === $permission) {
+                return true;
+            }
+
+            if (str_ends_with($allowed, '.*') && str_starts_with($permission, rtrim($allowed, '*'))) {
+                return true;
+            }
+        }
+
+        return false;
+    }
 }

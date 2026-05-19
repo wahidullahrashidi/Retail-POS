@@ -45,11 +45,23 @@ class AuthController extends Controller
             'pin_code' => 'required|string|size:4',
         ]);
 
-        $user = User::where('pin_code', $request->pin_code)
-            ->where('is_active', true)
-            ->first();
+        $pin = $request->pin_code;
+
+        $user = User::where('is_active', true)
+            ->get()
+            ->first(function (User $user) use ($pin) {
+                if (! $user->pin_code) {
+                    return false;
+                }
+
+                return Hash::check($pin, $user->pin_code) || hash_equals($user->pin_code, $pin);
+            });
 
         if ($user) {
+            if (! Hash::check($pin, $user->pin_code)) {
+                $user->forceFill(['pin_code' => Hash::make($pin)])->save();
+            }
+
             Auth::login($user);
             $user->update(['last_login_at' => now()]);
 

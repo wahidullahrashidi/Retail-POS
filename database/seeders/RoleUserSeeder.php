@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Hash;
 
 class RoleUserSeeder extends Seeder
 {
@@ -41,7 +42,7 @@ class RoleUserSeeder extends Seeder
                 'name' => 'System Admin',
                 'email' => 'admin@example.com',
                 'password' => 'admin123',
-                'pin_code' => '9999',
+                'pin_code' => Hash::make('9999'),
                 'is_active' => true,
             ]
         );
@@ -53,7 +54,7 @@ class RoleUserSeeder extends Seeder
                 'name' => 'Ahmad Shah',
                 'email' => 'ahmad@example.com',
                 'password' => 'cashier123',
-                'pin_code' => '1234',
+                'pin_code' => Hash::make('1234'),
                 'is_active' => true,
             ]
         );

@@ -22,7 +22,9 @@ class ReportController extends Controller
     // ══════════════════════════════════════════
     public function page()
     {
-        return view('reports.reports');
+        $cashiers = User::whereHas('shifts')->orderBy('name')->get(['id', 'name']);
+
+        return view('reports.reports', compact('cashiers'));
     }
 
     // ══════════════════════════════════════════
@@ -34,6 +36,7 @@ class ReportController extends Controller
         $from        = Carbon::parse($request->input('from', today()))->startOfDay();
         $to          = Carbon::parse($request->input('to',   today()))->endOfDay();
         $granularity = $request->input('granularity', 'daily');
+        $cashier     = $request->input('cashier_id', $request->input('cashier'));
 
         // Previous period for trend comparison
         $diff     = $from->diffInDays($to) + 1;
@@ -41,9 +44,11 @@ class ReportController extends Controller
         $prevTo   = $from->copy()->subSecond();
 
         $completedSales = fn($q) => $q->whereBetween('created_at', [$from, $to])
-                                      ->where('status', 'completed');
+                                      ->where('status', 'completed')
+                                      ->when($cashier, fn($query) => $query->where('user_id', $cashier));
         $prevSales = fn($q)      => $q->whereBetween('created_at', [$prevFrom, $prevTo])
-                                      ->where('status', 'completed');
+                                      ->where('status', 'completed')
+                                      ->when($cashier, fn($query) => $query->where('user_id', $cashier));
 
         // ── Core KPIs ──────────────────────────
         $totalRevenue = Sale::where($completedSales)->sum('total_amount');
@@ -52,6 +57,7 @@ class ReportController extends Controller
         $totalCost    = SaleItem::join('sales','sales.id','=','sale_items.sale_id')
             ->whereBetween('sales.created_at', [$from, $to])
             ->where('sales.status', 'completed')
+            ->when($cashier, fn($q) => $q->where('sales.user_id', $cashier))
             ->where('sale_items.is_returned', false)
             ->sum(DB::raw('sale_items.quantity * COALESCE(sale_items.cost_price, 0)'));
 
@@ -63,6 +69,7 @@ class ReportController extends Controller
         $itemsSold      = SaleItem::join('sales','sales.id','=','sale_items.sale_id')
             ->whereBetween('sales.created_at',[$from,$to])
             ->where('sales.status','completed')
+            ->when($cashier, fn($q) => $q->where('sales.user_id', $cashier))
             ->where('sale_items.is_returned',false)
             ->sum('sale_items.quantity');
 
@@ -73,12 +80,12 @@ class ReportController extends Controller
         $totalDiscounts = Sale::where($completedSales)->sum('discount_amount');
         $discountRate   = $totalRevenue > 0 ? ($totalDiscounts / ($totalRevenue + $totalDiscounts)) * 100 : 0;
 
-        $returnCount    = Sale::whereBetween('created_at',[$from,$to])->where('sale_type','return')->count();
-        $returnAmount   = Sale::whereBetween('created_at',[$from,$to])->where('sale_type','return')->sum('total_amount');
+        $returnCount    = Sale::whereBetween('created_at',[$from,$to])->forCashier($cashier)->where(fn($q) => $q->where('sale_type','return')->orWhere('status', 'refunded'))->count();
+        $returnAmount   = Sale::whereBetween('created_at',[$from,$to])->forCashier($cashier)->where(fn($q) => $q->where('sale_type','return')->orWhere('status', 'refunded'))->sum('total_amount');
 
         // ── Trend labels & series ──────────────
         [$trendLabels, $trendRevenue, $trendProfit, $dailyCash, $dailyLoan, $dailyLabels] =
-            $this->buildTrendSeries($from, $to, $granularity);
+            $this->buildTrendSeries($from, $to, $granularity, $cashier);
 
         // ── Hourly heatmap ─────────────────────
         $hourlyRaw = Sale::where($completedSales)
@@ -100,6 +107,7 @@ class ReportController extends Controller
             ->join('categories','categories.id','=','products.category_id')
             ->whereBetween('sales.created_at',[$from,$to])
             ->where('sales.status','completed')
+            ->when($cashier, fn($q) => $q->where('sales.user_id', $cashier))
             ->where('sale_items.is_returned',false)
             ->select('categories.name', DB::raw('SUM(sale_items.line_total) as revenue'))
             ->groupBy('categories.id','categories.name')
@@ -119,6 +127,7 @@ class ReportController extends Controller
             ->join('products','products.id','=','product_variants.product_id')
             ->whereBetween('sales.created_at',[$from,$to])
             ->where('sales.status','completed')
+            ->when($cashier, fn($q) => $q->where('sales.user_id', $cashier))
             ->where('sale_items.is_returned',false)
             ->select([
                 'products.name',
@@ -144,6 +153,7 @@ class ReportController extends Controller
             ->join('products','products.id','=','product_variants.product_id')
             ->whereBetween('sales.created_at',[$from,$to])
             ->where('sales.status','completed')
+            ->when($cashier, fn($q) => $q->where('sales.user_id', $cashier))
             ->where('product_variants.is_active',true)
             ->select([
                 'products.name',
@@ -268,6 +278,7 @@ class ReportController extends Controller
         $cashierData = Shift::join('users','users.id','=','shifts.user_id')
             ->leftJoin('sales','sales.shift_id','=','shifts.id')
             ->whereBetween('shifts.opened_at',[$from,$to])
+            ->when($cashier, fn($q) => $q->where('shifts.user_id', $cashier))
             ->select([
                 'shifts.user_id as id',
                 'users.name',
@@ -304,6 +315,7 @@ class ReportController extends Controller
                 'shifts.is_closed',
             ])
             ->whereBetween('shifts.opened_at',[$from,$to])
+            ->when($cashier, fn($q) => $q->where('shifts.user_id', $cashier))
             ->orderByDesc('shifts.opened_at')
             ->limit(20)->get()
             ->map(fn($s) => [
@@ -480,10 +492,12 @@ class ReportController extends Controller
         $from = Carbon::parse($request->input('from', today()))->startOfDay();
         $to   = Carbon::parse($request->input('to',   today()))->endOfDay();
         $type = $request->input('type', 'csv');
+        $cashier = $request->input('cashier_id', $request->input('cashier'));
 
         $sales = Sale::with('customer:id,name')
             ->whereBetween('created_at',[$from,$to])
             ->where('status','completed')
+            ->forCashier($cashier)
             ->orderByDesc('created_at')
             ->get();
 
@@ -514,59 +528,105 @@ class ReportController extends Controller
     // ══════════════════════════════════════════
     //  PRIVATE HELPERS
     // ══════════════════════════════════════════
-    private function buildTrendSeries(Carbon $from, Carbon $to, string $granularity): array
-    {
-        $labels = $revenue = $profit = $cash = $loan = $dailyLabels = [];
+    private function buildTrendSeries(Carbon $from, Carbon $to, string $granularity, mixed $cashier = null): array
+{
+    $labels = $revenue = $profit = $cash = $loan = [];
 
-        $days = $from->diffInDays($to) + 1;
-
-        if ($granularity === 'hourly' && $days <= 2) {
-            for ($h = 0; $h < 24; $h++) {
-                $labels[] = sprintf('%02d:00', $h);
-                $row = Sale::whereBetween('created_at',[$from->copy()->addHours($h),$from->copy()->addHours($h+1)->subSecond()])
-                    ->where('status','completed')
-                    ->selectRaw('SUM(total_amount) as rev, SUM(discount_amount) as disc, payment_method')
-                    ->first();
-                $rev = (float)($row->rev ?? 0);
-                $revenue[] = round($rev, 2);
-                $profit[]  = round($rev * 0.3, 2); // placeholder; replace with real cost join if needed
-                $cash[]    = 0; $loan[] = 0;
-            }
-        } elseif ($granularity === 'monthly' || $days > 90) {
-            $cursor = $from->copy()->startOfMonth();
-            while ($cursor->lte($to)) {
-                $start = $cursor->copy()->startOfMonth();
-                $end   = $cursor->copy()->endOfMonth();
-                $labels[] = $cursor->format('M Y');
-                $this->appendDayRow($start, $end, $revenue, $profit, $cash, $loan);
-                $cursor->addMonth();
-            }
-        } elseif ($granularity === 'weekly' || $days > 30) {
-            $cursor = $from->copy()->startOfWeek();
-            while ($cursor->lte($to)) {
-                $end = $cursor->copy()->endOfWeek();
-                $labels[] = $cursor->format('d M');
-                $this->appendDayRow($cursor, $end, $revenue, $profit, $cash, $loan);
-                $cursor->addWeek();
-            }
-        } else {
-            $cursor = $from->copy();
-            while ($cursor->lte($to)) {
-                $labels[] = $cursor->format('d M');
-                $start = $cursor->copy()->startOfDay();
-                $end   = $cursor->copy()->endOfDay();
-                $this->appendDayRow($start, $end, $revenue, $profit, $cash, $loan);
-                $cursor->addDay();
-            }
+    if ($granularity === 'hourly' && $from->diffInDays($to) < 2) {
+        // Hourly: still loop 24h – that’s fine
+        for ($h = 0; $h < 24; $h++) {
+            $start = $from->copy()->addHours($h);
+            $end   = $from->copy()->addHours($h + 1)->subSecond();
+            $labels[] = sprintf('%02d:00', $h);
+            $rev = (float) Sale::whereBetween('created_at',[$start,$end])
+                ->completed()->forCashier($cashier)->sum('total_amount');
+            $revenue[] = round($rev, 2);
+            $profit[]  = round($rev - $this->costForPeriod($start, $end, $cashier), 2);
+            $cash[]    = round((float) Sale::whereBetween('created_at',[$start,$end])->completed()->forCashier($cashier)->where('payment_method','cash')->sum('total_amount'), 2);
+            $loan[]    = round((float) Sale::whereBetween('created_at',[$start,$end])->completed()->forCashier($cashier)->where('payment_method','loan')->sum('total_amount'), 2);
         }
-
         return [$labels, $revenue, $profit, $cash, $loan, $labels];
     }
 
-    private function appendDayRow(Carbon $start, Carbon $end, &$revenue, &$profit, &$cash, &$loan): void
+    // For daily/weekly/monthly – group by period in one query
+    $groupFormat = match ($granularity) {
+        'weekly'  => '%Y-%u',   // ISO week
+        'monthly' => '%Y-%m',
+        default   => '%Y-%m-%d', // daily
+    };
+
+    $sales = Sale::whereBetween('created_at', [$from, $to])
+        ->completed()
+        ->forCashier($cashier)
+        ->selectRaw("DATE_FORMAT(created_at, '{$groupFormat}') as period,
+                     SUM(total_amount) as total_rev,
+                     SUM(CASE WHEN payment_method = 'cash' THEN total_amount ELSE 0 END) as cash_rev,
+                     SUM(CASE WHEN payment_method = 'loan' THEN total_amount ELSE 0 END) as loan_rev")
+        ->groupBy('period')
+        ->orderBy('period')
+        ->get()
+        ->keyBy('period');
+
+    // Cost grouped by same period
+    $costs = SaleItem::join('sales', 'sales.id', '=', 'sale_items.sale_id')
+        ->whereBetween('sales.created_at', [$from, $to])
+        ->where('sales.status', 'completed')
+        ->when($cashier, fn($q) => $q->where('sales.user_id', $cashier))
+        ->where('sale_items.is_returned', false)
+        ->selectRaw("DATE_FORMAT(sales.created_at, '{$groupFormat}') as period,
+                     SUM(sale_items.quantity * COALESCE(sale_items.cost_price, 0)) as cost")
+        ->groupBy('period')
+        ->get()
+        ->keyBy('period');
+
+    // Generate labels and fill arrays
+    $cursor = $from->copy();
+    while ($cursor->lte($to)) {
+        $period = $cursor->format(match ($granularity) {
+            'weekly'  => 'o-W',
+            'monthly' => 'Y-m',
+            default   => 'Y-m-d',
+        });
+        $labels[] = $cursor->format(match ($granularity) {
+            'weekly'  => 'd M',       // e.g., "01 Jan"
+            'monthly' => 'M Y',
+            default   => 'd M',
+        });
+
+        $rev = $sales[$period]->total_rev ?? 0;
+        $revenue[] = round((float) $rev, 2);
+        $profit[]  = round((float) $rev - ($costs[$period]->cost ?? 0), 2);
+        $cash[]    = round((float) ($sales[$period]->cash_rev ?? 0), 2);
+        $loan[]    = round((float) ($sales[$period]->loan_rev ?? 0), 2);
+
+        // Advance cursor
+        switch ($granularity) {
+            case 'weekly':  $cursor->addWeek(); break;
+            case 'monthly': $cursor->addMonth(); break;
+            default:        $cursor->addDay();   break;
+        }
+    }
+
+    return [$labels, $revenue, $profit, $cash, $loan, $labels];
+}
+
+// You can now delete appendDayRow() and the old costForPeriod()
+// Keep a lightweight costForPeriod for the hourly loop (if needed)
+private function costForPeriod(Carbon $start, Carbon $end, mixed $cashier = null): float
+{
+    return (float) SaleItem::join('sales','sales.id','=','sale_items.sale_id')
+        ->whereBetween('sales.created_at',[$start,$end])
+        ->where('sales.status','completed')
+        ->when($cashier, fn($q) => $q->where('sales.user_id', $cashier))
+        ->where('sale_items.is_returned', false)
+        ->sum(DB::raw('sale_items.quantity * COALESCE(sale_items.cost_price,0)'));
+}
+
+    private function appendDayRow(Carbon $start, Carbon $end, &$revenue, &$profit, &$cash, &$loan, mixed $cashier = null): void
     {
         $rows = Sale::whereBetween('created_at',[$start,$end])
             ->where('status','completed')
+            ->forCashier($cashier)
             ->selectRaw('SUM(total_amount) as rev, SUM(discount_amount) as disc, payment_method')
             ->groupBy('payment_method')->get()->keyBy('payment_method');
 
@@ -574,16 +634,23 @@ class ReportController extends Controller
         $loanVal  = (float)($rows['loan']->rev ?? 0);
         $rev      = $cashVal + $loanVal;
 
-        $costVal  = SaleItem::join('sales','sales.id','=','sale_items.sale_id')
-            ->whereBetween('sales.created_at',[$start,$end])
-            ->where('sales.status','completed')
-            ->sum(DB::raw('sale_items.quantity * COALESCE(sale_items.cost_price,0)'));
+        $costVal = $this->costForPeriod($start, $end, $cashier);
 
         $revenue[] = round($rev, 2);
         $profit[]  = round($rev - $costVal, 2);
         $cash[]    = round($cashVal, 2);
         $loan[]    = round($loanVal, 2);
     }
+
+    // private function costForPeriod(Carbon $start, Carbon $end, mixed $cashier = null): float
+    // {
+    //     return (float) SaleItem::join('sales','sales.id','=','sale_items.sale_id')
+    //         ->whereBetween('sales.created_at',[$start,$end])
+    //         ->where('sales.status','completed')
+    //         ->when($cashier, fn($q) => $q->where('sales.user_id', $cashier))
+    //         ->where('sale_items.is_returned', false)
+    //         ->sum(DB::raw('sale_items.quantity * COALESCE(sale_items.cost_price,0)'));
+    // }
 
     private function buildLoanSeries(Carbon $from, Carbon $to, array $labels): array
     {

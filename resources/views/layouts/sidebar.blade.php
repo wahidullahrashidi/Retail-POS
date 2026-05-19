@@ -1,4 +1,9 @@
-<aside id="sidebar">
+@php
+    $user = auth()->user();
+    $can = fn(array|string $permissions) => $user?->hasAnyPermission($permissions) ?? false;
+@endphp
+
+<aside id="sidebar" >
 
     {{-- Logo --}}
     <div class="sb-logo">
@@ -36,40 +41,52 @@
             <i class="fas fa-gauge-high"></i>
             <span class="sb-item-text">{{ __('messages.dashboard') }}</span>
         </a>
+        @if($can(['pos.sale']))
         <a href="{{ route('pos.poscheck') }}" class="sb-item {{ request()->routeIs('pos.poscheck') ? 'active' : '' }}"
             data-tip="{{ __('messages.pos_checkout') }}">
             <i class="fas fa-cash-register"></i>
             <span class="sb-item-text">{{ __('messages.pos_checkout') }}</span>
         </a>
+        @endif
+        @if($can(['inventory.*']))
         <a href="{{ route('pos.inventory') }}"
             class="sb-item {{ request()->routeIs('pos.inventory') ? 'active' : '' }}"
             data-tip="{{ __('messages.inventory') }}">
             <i class="fas fa-boxes-stacked"></i>
             <span class="sb-item-text">{{ __('messages.inventory') }}</span>
         </a>
+        @endif
+        @if($can(['customers.*', 'loan.payment', 'pos.sale']))
         <a href="{{ route('pos.customers.page') }}"
             class="sb-item {{ request()->routeIs('pos.customers.page') ? 'active' : '' }}"
             data-tip="{{ __('messages.customers') }}">
             <i class="fas fa-users"></i>
             <span class="sb-item-text">{{ __('messages.customers') }}</span>
         </a>
+        @endif
+        @if($can(['inventory.*']))
         <a href="{{ route('pos.suppliers.page') }}"
             class="sb-item {{ request()->routeIs('pos.suppliers.page') ? 'active' : '' }}"
             data-tip="{{ __('messages.suppliers') }}">
             <i class="fas fa-truck"></i>
             <span class="sb-item-text">{{ __('messages.suppliers') }}</span>
         </a>
+        @endif
+        @if($can(['pos.sale', 'reports.*']))
         <a href="{{ route('pos.sales.page') }}"
             class="sb-item {{ request()->routeIs('pos.sales.page') ? 'active' : '' }}"
             data-tip="{{ __('messages.sales_history') }}">
             <i class="fas fa-receipt"></i>
             <span class="sb-item-text">{{ __('messages.sales_history') }}</span>
         </a>
+        @endif
+        @if($can(['reports.*']))
         <a href="{{ route('pos.reports') }}" class="sb-item {{ request()->routeIs('pos.reports') ? 'active' : '' }}"
             data-tip="{{ __('messages.reports') }}">
             <i class="fas fa-chart-bar"></i>
             <span class="sb-item-text">{{ __('messages.reports') }}</span>
         </a>
+        @endif
 
         {{-- Operations section --}}
         <div class="sb-section-label" style="margin-top:.5rem">
@@ -77,32 +94,38 @@
         </div>
         {{-- Replace with: --}}
         <a href="{{ route('pos.shifts.page') }}"
-            class="sb-item {{ request()->routeIs('pos.shifts.*') ? 'active' : '' }}" data-tip="Shifts">
+            class="sb-item {{ request()->routeIs('pos.shifts.*') ? 'active' : '' }}" data-tip="{{ __('messages.shifts') }}">
             <i class="fas fa-clock"></i>
-            <span class="sb-item-text">Shifts</span>
+            <span class="sb-item-text">{{ __('messages.shifts') }}</span>
         </a>
 
         {{-- System section --}}
         <div class="sb-section-label" style="margin-top:.5rem">
             <span class="sb-label-text">{{ __('messages.system') }}</span>
         </div>
+        @if($can(['users.*']))
         <a href="{{ route('pos.users.page') }}"
             class="sb-item {{ request()->routeIs('pos.users.*') ? 'active' : '' }}"
             data-tip="{{ __('messages.user_management') }}">
             <i class="fas fa-users-gear"></i>
             <span class="sb-item-text">{{ __('messages.user_management') }}</span>
         </a>
+        @endif
+        @if($can(['backup.*']))
         <a href="{{ route('pos.backup') }}" class="sb-item {{ request()->routeIs('pos.backup*') ? 'active' : '' }}"
             data-tip="{{ __('messages.backup_sync') }}">
             <i class="fas fa-cloud-arrow-up"></i>
             <span class="sb-item-text">{{ __('messages.backup_sync') }}</span>
         </a>
+        @endif
+        @if($can(['settings.*']))
         <a href="{{ route('pos.settings') }}"
             class="sb-item {{ request()->routeIs('pos.settings*') ? 'active' : '' }}"
             data-tip="{{ __('messages.settings') }}">
             <i class="fas fa-gear"></i>
             <span class="sb-item-text">{{ __('messages.settings') }}</span>
         </a>
+        @endif
 
     </nav>
 

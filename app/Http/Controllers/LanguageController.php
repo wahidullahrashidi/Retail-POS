@@ -10,7 +10,7 @@ class LanguageController extends Controller
 {
     public function switch(string $lang): RedirectResponse
     {
-        $allowed = ['en', 'ps', 'dr'];
+        $allowed = ['en', 'ps', 'dr', 'fa'];
 
         if (! in_array($lang, $allowed, true)) {
             $lang = 'en';

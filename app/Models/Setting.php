@@ -22,6 +22,9 @@ class Setting extends Model
 
     public static function set(string $key, mixed $value): void
     {
-        static::where('key', $key)->update(['value' => $value]);
+        static::updateOrCreate(
+            ['key' => $key],
+            ['value' => is_bool($value) ? ($value ? '1' : '0') : $value]
+        );
     }
 }

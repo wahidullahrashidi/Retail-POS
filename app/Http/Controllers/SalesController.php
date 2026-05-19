@@ -407,6 +407,7 @@ class SalesController extends Controller
         $tab    = $request->input('tab', 'all');
         $method = $request->input('method', '');
         $status = $request->input('status', '');
+        $cashier = $request->input('cashier', '');
 
         $sales = Sale::query()
             ->leftJoin('customers', 'customers.id', '=', 'sales.customer_id')
@@ -423,6 +424,7 @@ class SalesController extends Controller
             ->when($tab === 'refunded', fn($q) => $q->where('sales.status', 'refunded'))
             ->when($method, fn($q) => $q->where('sales.payment_method', $method))
             ->when($status, fn($q) => $q->where('sales.status', $status))
+            ->when($cashier, fn($q) => $q->where('sales.user_id', $cashier))
             ->orderByDesc('sales.created_at')
             ->get();
 

@@ -885,8 +885,19 @@ body.dark {
 }
 
 /* RTL support for Pashto/Dari */
+[dir="rtl"] #sidebar {
+    direction: rtl;
+    border-right: none;
+    border-left: 1px solid #e2e8f0;
+}
+
 [dir="rtl"] .sb-item {
-    flex-direction: row-reverse;
+    direction: rtl;
+    text-align: right;
+}
+
+[dir="rtl"] .sb-item-text {
+    text-align: right;
 }
 
 [dir="rtl"] .sb-item.active::before {
@@ -895,6 +906,9 @@ body.dark {
     border-radius: 2px 0 0 2px;
 }
 
-[dir="rtl"] .sb-item-text {
-    text-align: right;
+[dir="rtl"] .sb-toggle {
+    margin-left: 0;
+    margin-right: auto;
 }
+
+

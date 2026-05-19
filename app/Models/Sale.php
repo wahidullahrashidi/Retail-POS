@@ -4,6 +4,8 @@ namespace App\Models;
 
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Builder;
+use Carbon\Carbon;
 
 class Sale extends Model
 {
@@ -30,5 +32,18 @@ class Sale extends Model
         return $this->hasMany(SaleItem::class);
     }
 
-    
+    public function scopeCompleted(Builder $query): Builder
+    {
+        return $query->where('status', 'completed');
+    }
+
+    public function scopeBetweenDates(Builder $query, Carbon $from, Carbon $to, string $column = 'created_at'): Builder
+    {
+        return $query->whereBetween($column, [$from, $to]);
+    }
+
+    public function scopeForCashier(Builder $query, mixed $cashierId): Builder
+    {
+        return filled($cashierId) ? $query->where('user_id', $cashierId) : $query;
+    }
 }

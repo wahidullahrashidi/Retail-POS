@@ -1245,3 +1245,69 @@ textarea.field-input {
     text-decoration: underline;
     cursor: pointer
 }
+
+/* RTL Table Styles for Pashto/Dari */
+.rtl-table {
+    direction: rtl;
+}
+
+.rtl-table th,
+.rtl-table td {
+    text-align: right;
+}
+
+/* Override text-right and text-center for RTL */
+.rtl-table th.text-right,
+.rtl-table td.text-right {
+    text-align: left !important;
+}
+
+.rtl-table th.text-center,
+.rtl-table td.text-center {
+    text-align: center !important;
+}
+
+/* Fix product cell layout */
+.rtl-table .cell-product {
+    display: flex;
+    flex-direction: row-reverse;
+    text-align: right;
+}
+
+.rtl-table .prod-thumb {
+    margin-left: 12px;
+    margin-right: 0;
+}
+
+.rtl-table .prod-name,
+.rtl-table .prod-sku {
+    text-align: right;
+}
+
+/* Fix price and cost cells */
+.rtl-table .cell-price,
+.rtl-table .cell-cost {
+    text-align: left !important;
+}
+
+/* Fix stock badge */
+.rtl-table .stock-badge {
+    display: inline-block;
+}
+
+/* Fix row actions buttons */
+.rtl-table .row-actions {
+    display: flex;
+    flex-direction: row-reverse;
+    gap: 8px;
+}
+
+.rtl-table .row-actions button {
+    margin: 0;
+}
+
+/* Fix sort icons position */
+.rtl-table th i.fa-sort {
+    margin-right: 5px;
+    margin-left: 0;
+}
