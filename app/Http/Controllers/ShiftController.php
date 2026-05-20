@@ -67,81 +67,76 @@ class ShiftController extends Controller
     //  GET /shift/close
     // ══════════════════════════════════════════
     public function closeForm()
-    {
-        $shift = Shift::where('user_id', Auth::id())
-            ->where('is_closed', false)
-            ->firstOrFail();
+{
+    $shift = Shift::where('user_id', Auth::id())
+        ->where('is_closed', false)
+        ->firstOrFail();
 
-        // Calculate cash sales for this shift
-        $cashSales = Sale::where('shift_id', $shift->id)
-            ->where('status', 'completed')
-            ->where('payment_method', 'cash')
-            ->sum('total_amount');
+    // One query instead of three
+    $summary = Sale::where('shift_id', $shift->id)
+        ->whereIn('status', ['completed', 'refunded'])
+        ->selectRaw("
+            COALESCE(SUM(CASE WHEN status = 'completed' AND payment_method = 'cash' THEN total_amount ELSE 0 END), 0) as cash_sales,
+            COALESCE(SUM(CASE WHEN status = 'refunded' THEN total_amount ELSE 0 END), 0) as cash_refunds,
+            COALESCE(SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END), 0) as tx_count
+        ")
+        ->first();
 
-        // Cash refunds
-        $cashRefunds = Sale::where('shift_id', $shift->id)
-            ->where('status', 'refunded')
-            ->sum('total_amount');
+    $cashSales      = (float) $summary->cash_sales;
+    $cashRefunds    = (float) $summary->cash_refunds;
+    $transactionCount = (int) $summary->tx_count;
 
-        // Transaction count
-        $transactionCount = Sale::where('shift_id', $shift->id)
-            ->where('status', 'completed')
-            ->count();
+    $expectedCash = $shift->starting_cash + $cashSales - $cashRefunds;
 
-        $expectedCash = $shift->starting_cash + $cashSales - $cashRefunds;
-
-        return view('shifts.close', compact(
-            'shift', 'expectedCash', 'cashSales', 'cashRefunds', 'transactionCount'
-        ));
-    }
+    return view('shifts.close', compact(
+        'shift', 'expectedCash', 'cashSales', 'cashRefunds', 'transactionCount'
+    ));
+}
 
     // ══════════════════════════════════════════
     //  CLOSE SHIFT (submit)
     //  POST /shift/close
     // ══════════════════════════════════════════
     public function close(Request $request)
-    {
-        $request->validate([
-            'actual_cash'      => 'required|numeric|min:0',
-            'discrepancy_note' => 'nullable|string|max:500',
-        ]);
+{
+    $request->validate([
+        'actual_cash'      => 'required|numeric|min:0',
+        'discrepancy_note' => 'nullable|string|max:500',
+    ]);
 
-        $shift = Shift::where('user_id', Auth::id())
-            ->where('is_closed', false)
-            ->firstOrFail();
+    $shift = Shift::where('user_id', Auth::id())
+        ->where('is_closed', false)
+        ->firstOrFail();
 
-        // Recalculate expected cash
-        $cashSales   = Sale::where('shift_id', $shift->id)
-            ->where('status', 'completed')
-            ->where('payment_method', 'cash')
-            ->sum('total_amount');
+    $summary = Sale::where('shift_id', $shift->id)
+        ->whereIn('status', ['completed', 'refunded'])
+        ->selectRaw("
+            COALESCE(SUM(CASE WHEN status = 'completed' AND payment_method = 'cash' THEN total_amount ELSE 0 END), 0) as cash_sales,
+            COALESCE(SUM(CASE WHEN status = 'refunded' THEN total_amount ELSE 0 END), 0) as cash_refunds
+        ")
+        ->first();
 
-        $cashRefunds = Sale::where('shift_id', $shift->id)
-            ->where('status', 'refunded')
-            ->sum('total_amount');
+    $expectedCash = $shift->starting_cash + $summary->cash_sales - $summary->cash_refunds;
+    $actualCash   = $request->actual_cash;
+    $discrepancy  = $actualCash - $expectedCash;
 
-        $expectedCash = $shift->starting_cash + $cashSales - $cashRefunds;
-        $actualCash   = $request->actual_cash;
-        $discrepancy  = $actualCash - $expectedCash;
+    $shift->update([
+        'closed_at'        => now(),
+        'expected_cash'    => $expectedCash,
+        'actual_cash'      => $actualCash,
+        'discrepancy'      => $discrepancy,
+        'discrepancy_note' => $request->discrepancy_note,
+        'is_closed'        => true,
+        'closed_by'        => Auth::id(),
+    ]);
 
-        $shift->update([
-            'closed_at'        => now(),
-            'expected_cash'    => $expectedCash,
-            'actual_cash'      => $actualCash,
-            'discrepancy'      => $discrepancy,
-            'discrepancy_note' => $request->discrepancy_note,
-            'is_closed'        => true,
-            'closed_by'        => Auth::id(),
-        ]);
+    Auth::logout();
+    $request->session()->invalidate();
+    $request->session()->regenerateToken();
 
-        // Log out the user after closing shift
-        Auth::logout();
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
-
-        return redirect()->route('login')
-            ->with('success', 'Shift closed successfully. Please log in for your next shift.');
-    }
+    return redirect()->route('login')
+        ->with('success', 'Shift closed successfully. Please log in for your next shift.');
+}
 
     // ══════════════════════════════════════════
     //  SHIFTS PAGE — blade with stats
@@ -254,99 +249,117 @@ class ShiftController extends Controller
     //  GET /pos/shifts/{shift}/detail
     // ══════════════════════════════════════════
     public function detail(Shift $shift)
-    {
-        $cashSales = Sale::where('shift_id', $shift->id)
-            ->where('status', 'completed')
-            ->where('payment_method', 'cash')
-            ->sum('total_amount');
+{
+    $summary = Sale::where('shift_id', $shift->id)
+        ->where('status', 'completed')
+        ->selectRaw("
+            COALESCE(SUM(CASE WHEN payment_method = 'cash' THEN total_amount ELSE 0 END), 0) as cash_sales,
+            COUNT(*) as tx_count
+        ")
+        ->first();
 
-        $txCount = Sale::where('shift_id', $shift->id)
-            ->where('status', 'completed')
-            ->count();
+    $cashSales = (float) $summary->cash_sales;
+    $txCount   = (int) $summary->tx_count;
 
-        // Top 5 items sold in this shift
-        $topItems = SaleItem::join('sales', 'sales.id', '=', 'sale_items.sale_id')
-            ->join('product_variants', 'product_variants.id', '=', 'sale_items.variant_id')
-            ->join('products', 'products.id', '=', 'product_variants.product_id')
-            ->where('sales.shift_id', $shift->id)
-            ->where('sales.status', 'completed')
-            ->where('sale_items.is_returned', false)
-            ->select([
-                'products.name',
-                'product_variants.sku',
-                DB::raw('SUM(sale_items.quantity) as qty'),
-                DB::raw('SUM(sale_items.line_total) as revenue'),
-            ])
-            ->groupBy('product_variants.id', 'products.name', 'product_variants.sku')
-            ->orderByDesc('revenue')
-            ->limit(5)
-            ->get()
-            ->map(fn($i) => [
-                'name'    => $i->name,
-                'sku'     => $i->sku,
-                'qty'     => (int)$i->qty,
-                'revenue' => (float)$i->revenue,
-            ]);
-
-        $expectedCash = $shift->starting_cash + $cashSales;
-
-        return response()->json([
-            'shift' => [
-                'id'               => $shift->id,
-                'starting_cash'    => (float)$shift->starting_cash,
-                'expected_cash'    => (float)($shift->expected_cash ?? $expectedCash),
-                'actual_cash'      => $shift->actual_cash !== null ? (float)$shift->actual_cash : null,
-                'discrepancy'      => $shift->discrepancy !== null ? (float)$shift->discrepancy : null,
-                'discrepancy_note' => $shift->discrepancy_note,
-                'cash_sales'       => (float)$cashSales,
-                'tx_count'         => $txCount,
-                'duration'         => $shift->closed_at
-                    ? $this->formatDuration($shift->opened_at, $shift->closed_at)
-                    : null,
-            ],
-            'top_items' => $topItems,
+    // Top 5 items sold in this shift
+    $topItems = SaleItem::join('sales', 'sales.id', '=', 'sale_items.sale_id')
+        ->join('product_variants', 'product_variants.id', '=', 'sale_items.variant_id')
+        ->join('products', 'products.id', '=', 'product_variants.product_id')
+        ->where('sales.shift_id', $shift->id)
+        ->where('sales.status', 'completed')
+        ->where('sale_items.is_returned', false)
+        ->select([
+            'products.name',
+            'product_variants.sku',
+            DB::raw('SUM(sale_items.quantity) as qty'),
+            DB::raw('SUM(sale_items.line_total) as revenue'),
+        ])
+        ->groupBy('product_variants.id', 'products.name', 'product_variants.sku')
+        ->orderByDesc('revenue')
+        ->limit(5)
+        ->get()
+        ->map(fn($i) => [
+            'name'    => $i->name,
+            'sku'     => $i->sku,
+            'qty'     => (int)$i->qty,
+            'revenue' => (float)$i->revenue,
         ]);
-    }
+
+    $expectedCash = $shift->starting_cash + $cashSales;
+
+    return response()->json([
+        'shift' => [
+            'id'               => $shift->id,
+            'starting_cash'    => (float)$shift->starting_cash,
+            'expected_cash'    => (float)($shift->expected_cash ?? $expectedCash),
+            'actual_cash'      => $shift->actual_cash !== null ? (float)$shift->actual_cash : null,
+            'discrepancy'      => $shift->discrepancy !== null ? (float)$shift->discrepancy : null,
+            'discrepancy_note' => $shift->discrepancy_note,
+            'cash_sales'       => $cashSales,
+            'tx_count'         => $txCount,
+            'duration'         => $shift->closed_at
+                ? $this->formatDuration($shift->opened_at, $shift->closed_at)
+                : null,
+        ],
+        'top_items' => $topItems,
+    ]);
+}
 
     // ══════════════════════════════════════════
     //  REPORT — full shift Z-report page
     //  GET /pos/shifts/{shift}/report
     // ══════════════════════════════════════════
     public function report(Shift $shift)
-    {
-        $shift->load('user');
+{
+    $shift->load('user');
 
-        $cashSales  = Sale::where('shift_id', $shift->id)->where('status','completed')->where('payment_method','cash')->sum('total_amount');
-        $loanSales  = Sale::where('shift_id', $shift->id)->where('status','completed')->where('payment_method','loan')->sum('total_amount');
-        $totalSales = $cashSales + $loanSales;
-        $discounts  = Sale::where('shift_id', $shift->id)->where('status','completed')->sum('discount_amount');
-        $returns    = Sale::where('shift_id', $shift->id)->where('status','refunded')->sum('total_amount');
-        $txCount    = Sale::where('shift_id', $shift->id)->where('status','completed')->count();
-        $avgTicket  = $txCount > 0 ? $totalSales / $txCount : 0;
+    // One query for all the numeric summaries
+    $summary = Sale::where('shift_id', $shift->id)
+        ->whereIn('status', ['completed', 'refunded'])
+        ->selectRaw("
+            COALESCE(SUM(CASE WHEN status = 'completed' AND payment_method = 'cash' THEN total_amount ELSE 0 END), 0) as cash_sales,
+            COALESCE(SUM(CASE WHEN status = 'completed' AND payment_method = 'loan' THEN total_amount ELSE 0 END), 0) as loan_sales,
+            COALESCE(SUM(CASE WHEN status = 'completed' THEN discount_amount ELSE 0 END), 0) as discounts,
+            COALESCE(SUM(CASE WHEN status = 'refunded' THEN total_amount ELSE 0 END), 0) as returns,
+            COUNT(CASE WHEN status = 'completed' THEN 1 END) as tx_count
+        ")
+        ->first();
 
-        $itemsSold  = SaleItem::join('sales','sales.id','=','sale_items.sale_id')
-            ->where('sales.shift_id', $shift->id)
-            ->where('sales.status','completed')
-            ->sum('sale_items.quantity');
+    $cashSales  = (float) $summary->cash_sales;
+    $loanSales  = (float) $summary->loan_sales;
+    $totalSales = $cashSales + $loanSales;
+    $discounts  = (float) $summary->discounts;
+    $returns    = (float) $summary->returns;
+    $txCount    = (int) $summary->tx_count;
+    $avgTicket  = $txCount > 0 ? $totalSales / $txCount : 0;
 
-        $topItems = SaleItem::join('sales','sales.id','=','sale_items.sale_id')
-            ->join('product_variants','product_variants.id','=','sale_items.variant_id')
-            ->join('products','products.id','=','product_variants.product_id')
-            ->where('sales.shift_id', $shift->id)
-            ->where('sales.status','completed')
-            ->select(['products.name', DB::raw('SUM(sale_items.quantity) as qty'), DB::raw('SUM(sale_items.line_total) as revenue')])
-            ->groupBy('products.id','products.name')
-            ->orderByDesc('revenue')->limit(10)->get();
+    // Items sold quantity
+    $itemsSold = SaleItem::join('sales', 'sales.id', '=', 'sale_items.sale_id')
+        ->where('sales.shift_id', $shift->id)
+        ->where('sales.status', 'completed')
+        ->sum('sale_items.quantity');
 
-        $duration = $shift->closed_at
-            ? $this->formatDuration($shift->opened_at, $shift->closed_at)
-            : 'Still Active';
+    // Top items – unchanged
+    $topItems = SaleItem::join('sales', 'sales.id', '=', 'sale_items.sale_id')
+        ->join('product_variants', 'product_variants.id', '=', 'sale_items.variant_id')
+        ->join('products', 'products.id', '=', 'product_variants.product_id')
+        ->where('sales.shift_id', $shift->id)
+        ->where('sales.status', 'completed')
+        ->select(['products.name', DB::raw('SUM(sale_items.quantity) as qty'), DB::raw('SUM(sale_items.line_total) as revenue')])
+        ->groupBy('products.id', 'products.name')
+        ->orderByDesc('revenue')
+        ->limit(10)
+        ->get();
 
-        return view('shifts.shiftReport', compact(
-            'shift','cashSales','loanSales','totalSales','discounts',
-            'returns','txCount','avgTicket','itemsSold','topItems','duration'
-        ));
-    }
+    $duration = $shift->closed_at
+        ? $this->formatDuration($shift->opened_at, $shift->closed_at)
+        : 'Still Active';
+
+    return view('shifts.shiftReport', compact(
+        'shift', 'cashSales', 'loanSales', 'totalSales', 'discounts',
+        'returns', 'txCount', 'avgTicket', 'itemsSold', 'topItems', 'duration'
+    ));
+}
 
     // ══════════════════════════════════════════
     //  PRIVATE HELPERS

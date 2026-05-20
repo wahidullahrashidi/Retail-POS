@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-
 use App\Services\SaleService;
 use App\Models\Sale;
 use App\Models\SaleItem;
@@ -26,7 +25,6 @@ class POSController extends Controller
     {
         return view('pos.pos_checkout');
     }
-
 
     public function storeSale(Request $request, SaleService $saleService)
     {
@@ -86,12 +84,10 @@ class POSController extends Controller
             'is_return'      => 'boolean',
         ]);
 
-        // Must have an active shift
         $shift = Shift::where('user_id', auth()->id())
             ->where('is_closed', false)
             ->firstOrFail();
 
-        // Loan sales require a customer
         if ($request->payment_method === 'loan' && ! $request->customer_id) {
             return response()->json([
                 'success' => false,
@@ -117,7 +113,7 @@ class POSController extends Controller
             $totalAmount = max(0, $subtotal - $discountAmount + $taxAmount);
 
             $amountPaid   = $request->payment_method === 'cash'
-                ? min($request->cash_received, $totalAmount)   // never record overpayment as paid
+                ? min($request->cash_received, $totalAmount)
                 : ($request->loan_deposit ?? 0);
 
             $changeAmount = $request->payment_method === 'cash'
@@ -148,16 +144,25 @@ class POSController extends Controller
                 'sync_status'    => 'pending',
             ]);
 
-            // ── 3. Create Sale Items + deduct stock ──────
+            // ── 3. Lock variants in one query, then process ──
+            $variantIds = collect($request->cart)->pluck('variant_id')->unique();
+            $variants = ProductVariant::lockForUpdate()
+                ->whereIn('id', $variantIds)
+                ->get()
+                ->keyBy('id');
+
             foreach ($request->cart as $item) {
-                $variant = ProductVariant::lockForUpdate()->findOrFail($item['variant_id']);
+                $variant = $variants->get($item['variant_id']);
+                if (! $variant) {
+                    throw new \Exception('Variant not found: ' . $item['variant_id']);
+                }
 
                 // Stock check (skip for returns — they add stock back)
                 if (! $request->is_return && $variant->stock_quantity < $item['qty']) {
                     throw new \Exception("Insufficient stock for: {$variant->sku}. Available: {$variant->stock_quantity}");
                 }
 
-                $lineDiscount = 0; // per-line discount can be added later
+                $lineDiscount = 0;
                 $lineTotal    = ($item['price'] * $item['qty']) - $lineDiscount;
 
                 SaleItem::create([
@@ -197,7 +202,6 @@ class POSController extends Controller
                     'last_payment_at'  => $deposit > 0 ? now() : null,
                 ]);
 
-                // Link loan back to sale
                 $sale->update(['loan_id' => $loan->id]);
             }
 
@@ -221,7 +225,6 @@ class POSController extends Controller
         }
     }
 
-
     // ══════════════════════════════════════════════
     //  HOLD — Save cart as a held sale
     // ══════════════════════════════════════════════
@@ -239,15 +242,18 @@ class POSController extends Controller
             ->where('is_closed', false)
             ->firstOrFail();
 
-        // Calculate subtotal for held sale
         $subtotal = collect($request->cart)->sum(fn($i) => $i['price'] * $i['qty']);
-
-        // Unique hold code cashier can use to recall this cart
         $holdCode = strtoupper(Str::random(6));
 
         DB::beginTransaction();
 
         try {
+            // Pre-fetch all needed variants (no locking needed here)
+            $variantIds = collect($request->cart)->pluck('variant_id')->unique();
+            $variants = ProductVariant::whereIn('id', $variantIds)
+                ->get()
+                ->keyBy('id');
+
             $sale = Sale::create([
                 'local_id'        => 'HOLD-' . $holdCode,
                 'shift_id'        => $shift->id,
@@ -259,7 +265,7 @@ class POSController extends Controller
                 'discount_amount' => 0,
                 'tax_amount'      => 0,
                 'total_amount'    => $subtotal,
-                'payment_method'  => 'cash',   // placeholder, overwritten on completion
+                'payment_method'  => 'cash',
                 'amount_paid'     => 0,
                 'change_amount'   => 0,
                 'hold_code'       => $holdCode,
@@ -270,17 +276,19 @@ class POSController extends Controller
             ]);
 
             foreach ($request->cart as $item) {
+                $variant = $variants->get($item['variant_id']);
+
                 SaleItem::create([
                     'sale_id'         => $sale->id,
                     'variant_id'      => $item['variant_id'],
                     'quantity'        => $item['qty'],
                     'unit_price'      => $item['price'],
-                    'cost_price'      => ProductVariant::find($item['variant_id'])?->cost_price,
+                    'cost_price'      => $variant?->cost_price ?? 0,
                     'discount_amount' => 0,
                     'line_total'      => $item['price'] * $item['qty'],
                     'is_returned'     => false,
                 ]);
-                // NOTE: stock is NOT deducted on hold — only on final completion
+                // Stock is NOT deducted on hold
             }
 
             DB::commit();
@@ -299,7 +307,6 @@ class POSController extends Controller
             ], 422);
         }
     }
-
 
     // ══════════════════════════════════════════════
     //  SEARCH CUSTOMERS
@@ -321,7 +328,6 @@ class POSController extends Controller
                     ->orWhere('city', 'like', "%{$q}%");
             })
             ->select(['id', 'name', 'phone', 'city', 'credit_limit'])
-            // Attach outstanding loan balance as a subquery
             ->withSum(
                 ['loans' => fn($q) => $q->where('status', 'active')],
                 'remaining_balance'
@@ -342,44 +348,42 @@ class POSController extends Controller
     }
 
     public function recall(Request $request)
-{
-    $code = strtoupper(trim($request->input('code', '')));
+    {
+        $code = strtoupper(trim($request->input('code', '')));
 
-    if (empty($code)) {
-        return response()->json(['success' => false, 'message' => 'No code provided.']);
-    }
+        if (empty($code)) {
+            return response()->json(['success' => false, 'message' => 'No code provided.']);
+        }
 
-    $sale = Sale::with('saleItems.variant.product')
-        ->where('hold_code', $code)
-        ->where('status', 'held')
-        ->where('hold_expires_at', '>', now())
-        ->first();
+        $sale = Sale::with('saleItems.variant.product')
+            ->where('hold_code', $code)
+            ->where('status', 'held')
+            ->where('hold_expires_at', '>', now())
+            ->first();
 
-    if (! $sale) {
+        if (! $sale) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Hold code not found or expired.',
+            ]);
+        }
+
+        $cart = $sale->saleItems->map(fn($item) => [
+            'variant_id'     => $item->variant_id,
+            'name'           => $item->variant->product->name,
+            'sku'            => $item->variant->sku,
+            'price'          => (float) $item->unit_price,
+            'qty'            => $item->quantity,
+            'stock_quantity' => $item->variant->stock_quantity + $item->quantity,
+            'lineTotal'      => (float) $item->line_total,
+            'row_discount'   => 0,
+        ]);
+
+        $sale->update(['status' => 'cancelled']);
+
         return response()->json([
-            'success' => false,
-            'message' => 'Hold code not found or expired.',
+            'success' => true,
+            'cart'    => $cart,
         ]);
     }
-
-    // Rebuild cart array from saved sale items
-    $cart = $sale->saleItems->map(fn($item) => [
-        'variant_id'     => $item->variant_id,
-        'name'           => $item->variant->product->name,
-        'sku'            => $item->variant->sku,
-        'price'          => (float) $item->unit_price,
-        'qty'            => $item->quantity,
-        'stock_quantity' => $item->variant->stock_quantity + $item->quantity, // add back since not deducted
-        'lineTotal'      => (float) $item->line_total,
-        'row_discount'   => 0,
-    ]);
-
-    // Mark as cancelled so it can't be recalled twice
-    $sale->update(['status' => 'cancelled']);
-
-    return response()->json([
-        'success' => true,
-        'cart'    => $cart,
-    ]);
-}
 }

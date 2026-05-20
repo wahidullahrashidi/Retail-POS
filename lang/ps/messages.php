@@ -367,7 +367,11 @@ return [
     'update_user' => 'کاروونکی تازه کړئ',
     'upload_photo' => 'انځور پورته کړئ',
     'user_detail' => 'د کاروونکي معلومات',
-'never_logged_in' => 'هیڅکله لاګ ان نه شوی',
+    'never_logged_in' => 'هیڅکله لاګ ان نه شوی',
+    'failed_to_save_cloud config' => 'د کلاوډ کنپیګریشن خوندي کولو کې پاتې راغی',
+    'testing_connection' => 'د کنکشن ازمویل',
+
+
 // User Management
 'confirm_deactivate' => ':name غیر فعال کړئ؟',
 'confirm_activate' => ':name فعال کړئ؟',
@@ -448,7 +452,7 @@ return [
     'calendar' => 'جنتري',
     'calendar_language' => 'جنتري او ژبه',
     'calendar_language_sub' => 'د سیسټم د نیټې بڼه او ژبې غوره توبونه',
-    'catalog' => 'کتلاګ',
+    'catalog' => 'کټلاګ',
     'categories' => 'کټګورۍ',
     'category_name_required' => 'د کټګورۍ نوم اړین دی.',
     'code' => 'کوډ',
@@ -496,6 +500,15 @@ return [
     'hours' => ':hours ساعته',
     'local_disk' => 'ځايي ډیسک',
     'low_stock_threshold' => 'د کم سټاک حد',
+    'product_categories_sub' => 'محصولات په یوه سلسله مراتبو کې تنظیم کړئ',
+    'daily_backup_sub' => 'هره ورځ په ټاکل شوي وخت کې چلیږي',
+    'sync_records' => 'ریکارډونه همغږي کړی',
+    'sync_status_by_table' => 'Sync Status by Table',
+    'sync_all' => 'ټول همغږي کړئ',
+
+
+
+
     'minutes' => ':minutes دقیقې',
     'name_dari' => 'نوم (دري)',
     'name_dari_placeholder' => 'د محصول کټګوري',
@@ -545,7 +558,7 @@ return [
     'system' => 'سیسټم',
     'test' => 'ازموینه',
     'test_all' => 'ټول وازمویئ',
-    'test_connection' => 'د پیوستون ازموینه',
+    'test_connection' => 'د کنکشن ازمویل',
     'activity_log' => 'د فعالیت ثبت',
     'testing' => 'ازموینه روانه ده',
     'timezone' => 'وخت زون',
@@ -555,6 +568,8 @@ return [
     'value_pashto' => 'ارزښت (پښتو)',
     'value_required' => 'ارزښت اړین دی.',
     'values' => 'ارزښتونه',
+'dropbox' => 'ډراف باکس',
+
 
     // ============================================
     // BACKUP & SYNC
@@ -575,7 +590,6 @@ return [
     'configured' => 'تنظیم شوی',
     'created' => 'جوړ شوی',
     'daily_backup' => 'ورځنی بیک اپ',
-    'daily_backup_sub' => 'هره ورځ په ټاکلي وخت اجرا کېږي',
     'database' => 'ډیټابېس',
     'disk_usage' => 'د ډیسک کارونه',
     'download' => 'ډاونلوډ',
@@ -894,6 +908,8 @@ return [
     'payment_schedule_hint' => 'له دې تامین کوونکي سره د تادیاتو توافق شوی پروګرام',
     'optional_notes' => 'د دې تامین کوونکي په اړه اختیاري یادښتونه…',
     'update_supplier' => 'تامین کوونکی تازه کړئ',
+    'schedule_settings_saved' => 'د مهالویش ترتیبات خوندي شوي',
+    'cloud_configuration_saved' => 'د کلاوډ کنپیګریشن خوندي شو',
     
     // General
 

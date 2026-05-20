@@ -2,6 +2,7 @@
 @import 'tailwindcss';
 @import './layout/app-shell.css';
 @import './layout/theme.css';
+
 /* resources/css/app.css */
 @import './pages/backup.css';
 @import './pages/dashboard.css';
@@ -11,7 +12,6 @@
 @import './pages/reports.css';
 @import './pages/sales.css';
 @import './pages/users.css';
-
 
 
 

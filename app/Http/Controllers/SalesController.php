@@ -18,26 +18,36 @@ class SalesController extends Controller
     //  PAGE — blade view with stats
     // ══════════════════════════════════════════
     public function page()
-    {
-        $today = today();
+{
+    $today = today()->toDateString();
 
-        $stats = [
-            'today_revenue' => Sale::whereDate('created_at', $today)->where('status', 'completed')->sum('total_amount'),
-            'today_count'   => Sale::whereDate('created_at', $today)->where('status', 'completed')->count(),
-            'today_cash'    => Sale::whereDate('created_at', $today)->where('status', 'completed')->where('payment_method', 'cash')->sum('total_amount'),
-            'today_loan'    => Sale::whereDate('created_at', $today)->where('status', 'completed')->where('payment_method', 'loan')->sum('total_amount'),
-            'today_refunds' => Sale::whereDate('created_at', $today)->where('status', 'refunded')->count(),
-            'today_avg'     => 0,
-        ];
+    // Single aggregated query for all today stats
+    $todayStats = Sale::whereDate('created_at', $today)
+        ->where('status', 'completed')
+        ->selectRaw("
+            COALESCE(SUM(total_amount), 0) as revenue,
+            COUNT(*) as count,
+            COALESCE(SUM(CASE WHEN payment_method = 'cash' THEN total_amount ELSE 0 END), 0) as cash,
+            COALESCE(SUM(CASE WHEN payment_method = 'loan' THEN total_amount ELSE 0 END), 0) as loan,
+            COALESCE(SUM(CASE WHEN status = 'refunded' THEN 1 ELSE 0 END), 0) as refunds
+        ")
+        ->first();
 
-        if ($stats['today_count'] > 0) {
-            $stats['today_avg'] = $stats['today_revenue'] / $stats['today_count'];
-        }
+    $stats = [
+        'today_revenue' => (float) $todayStats->revenue,
+        'today_count'   => (int) $todayStats->count,
+        'today_cash'    => (float) $todayStats->cash,
+        'today_loan'    => (float) $todayStats->loan,
+        'today_refunds' => (int) $todayStats->refunds,
+        'today_avg'     => $todayStats->count > 0
+            ? round($todayStats->revenue / $todayStats->count, 2)
+            : 0,
+    ];
 
-        $cashiers = User::whereHas('shifts')->orderBy('name')->get(['id', 'name']);
+    $cashiers = User::whereHas('shifts')->orderBy('name')->get(['id', 'name']);
 
-        return view('sales.sales', compact('stats', 'cashiers'));
-    }
+    return view('sales.sales', compact('stats', 'cashiers'));
+}
 
     // ══════════════════════════════════════════
     //  INDEX — paginated JSON list
@@ -189,69 +199,55 @@ class SalesController extends Controller
     DB::beginTransaction();
 
     try {
+        $sale = Sale::with(['saleItems.variant', 'loan'])
+            ->lockForUpdate()
+            ->findOrFail($request->sale_id);
 
-        // ═══════════════════════════════════════
-        // LOAD SALE
-        // ═══════════════════════════════════════
-        $sale = Sale::with([
-            'saleItems.variant',
-            'loan',
-        ])->lockForUpdate()->findOrFail($request->sale_id);
-
-        // ═══════════════════════════════════════
-        // VALIDATIONS
-        // ═══════════════════════════════════════
         if ($sale->status === 'refunded') {
             throw new \Exception('Sale already fully refunded.');
         }
-
         if ($sale->status !== 'completed') {
             throw new \Exception('Only completed sales can be refunded.');
         }
 
-        // ═══════════════════════════════════════
-        // TOTAL VALUE OF RETURNED ITEMS
-        // (NOT NECESSARILY CASH REFUND)
-        // ═══════════════════════════════════════
+        // Collect all sale item IDs and corresponding variant IDs from the request
+        $incoming = collect($request->items)->keyBy('sale_item_id');
+        $saleItemsMap = $sale->saleItems->keyBy('id');
+
+        $variantIds = $saleItemsMap
+            ->only($incoming->keys())
+            ->pluck('variant_id')
+            ->unique()
+            ->values();
+
+        // Lock all needed variants in ONE query
+        $variants = ProductVariant::lockForUpdate()
+            ->whereIn('id', $variantIds)
+            ->get()
+            ->keyBy('id');
+
         $returnValue = 0;
 
-        // ═══════════════════════════════════════
-        // PROCESS RETURN ITEMS
-        // ═══════════════════════════════════════
-        foreach ($request->items as $refundItem) {
-
-            $saleItem = $sale->saleItems
-                ->firstWhere('id', $refundItem['sale_item_id']);
+        foreach ($incoming as $itemId => $refundItem) {
+            $saleItem = $saleItemsMap->get($itemId);
 
             if (!$saleItem) {
                 throw new \Exception('Sale item not found.');
             }
 
-            // Prevent over-returning
             $maxRefundable = $saleItem->quantity - $saleItem->returned_qty;
-
             if ($refundItem['qty'] > $maxRefundable) {
                 throw new \Exception(
                     "Refund qty exceeds available qty for {$saleItem->variant->sku}."
                 );
             }
 
-            // ═══════════════════════════════════
-            // RESTORE STOCK
-            // ═══════════════════════════════════
-            $variant = ProductVariant::lockForUpdate()
-                ->findOrFail($saleItem->variant_id);
-
+            $variant = $variants->get($saleItem->variant_id);
             $prevStock = $variant->stock_quantity;
             $newStock  = $prevStock + $refundItem['qty'];
 
-            $variant->update([
-                'stock_quantity' => $newStock,
-            ]);
+            $variant->update(['stock_quantity' => $newStock]);
 
-            // ═══════════════════════════════════
-            // INVENTORY LOG
-            // ═══════════════════════════════════
             InventoryAdjustment::create([
                 'variant_id'      => $variant->id,
                 'adjustment_type' => 'sale_return',
@@ -264,72 +260,34 @@ class SalesController extends Controller
                 'new_stock'       => $newStock,
             ]);
 
-            // ═══════════════════════════════════
-            // UPDATE SALE ITEM RETURN STATUS
-            // ═══════════════════════════════════
             $newReturnedQty = $saleItem->returned_qty + $refundItem['qty'];
-
             $saleItem->update([
                 'returned_qty' => $newReturnedQty,
                 'is_returned'  => $newReturnedQty >= $saleItem->quantity,
             ]);
 
-            // ═══════════════════════════════════
-            // CALCULATE RETURN VALUE
-            // ═══════════════════════════════════
-            $returnValue += (
-                $saleItem->unit_price * $refundItem['qty']
-            );
+            $returnValue += ($saleItem->unit_price * $refundItem['qty']);
         }
 
-        // ═══════════════════════════════════════
-        // DETERMINE CASH REFUND
-        // ═══════════════════════════════════════
+        // Loan handling (unchanged logic)
         $cashRefund = $returnValue;
 
-        // ═══════════════════════════════════════
-        // LOAN HANDLING
-        // ═══════════════════════════════════════
         if ($sale->payment_method === 'loan' && $sale->loan) {
-
             $loan = $sale->loan;
-
             $remainingLoan = $loan->remaining_balance;
             $paidAmount    = $loan->amount_paid;
 
-            // ───────────────────────────────────
-            // CASE 1:
-            // RETURN ONLY REDUCES DEBT
-            // Customer receives NO cash
-            // ───────────────────────────────────
             if ($returnValue <= $remainingLoan) {
-
                 $newRemaining = $remainingLoan - $returnValue;
-
                 $loan->update([
                     'remaining_balance' => $newRemaining,
-                    'status' => $newRemaining <= 0
-                        ? 'paid'
-                        : 'partial',
+                    'status' => $newRemaining <= 0 ? 'paid' : 'partial',
                 ]);
-
                 $cashRefund = 0;
-            }
-
-            // ───────────────────────────────────
-            // CASE 2:
-            // RETURN EXCEEDS REMAINING DEBT
-            // Customer gets extra as cash refund
-            // ───────────────────────────────────
-            else {
-
+            } else {
                 $extraRefund = $returnValue - $remainingLoan;
-
-                // Never refund more than customer paid
                 $cashRefund = min($extraRefund, $paidAmount);
-
                 $newPaid = max(0, $paidAmount - $cashRefund);
-
                 $loan->update([
                     'remaining_balance' => 0,
                     'amount_paid'       => $newPaid,
@@ -338,25 +296,13 @@ class SalesController extends Controller
             }
         }
 
-        // ═══════════════════════════════════════
-        // CHECK FULL/PARTIAL REFUND
-        // ═══════════════════════════════════════
-        $allReturned = $sale->saleItems->every(function ($item) {
+        // Check if everything is returned
+        $allReturned = $sale->saleItems
+            ->every(fn($item) => $item->returned_qty >= $item->quantity);
 
-            $freshItem = $item->fresh();
-
-            return $freshItem->returned_qty >= $freshItem->quantity;
-        });
-
-        // ═══════════════════════════════════════
-        // UPDATE SALE STATUS
-        // ═══════════════════════════════════════
         $sale->update([
-            'status' => $allReturned
-                ? 'refunded'
-                : 'completed',
-
-            'notes' => trim(
+            'status' => $allReturned ? 'refunded' : 'completed',
+            'notes'  => trim(
                 ($sale->notes ? $sale->notes . ' | ' : '') .
                 "Return processed: {$request->reason}"
             ),
@@ -364,35 +310,19 @@ class SalesController extends Controller
 
         DB::commit();
 
-        // ═══════════════════════════════════════
-        // RESPONSE
-        // ═══════════════════════════════════════
         return response()->json([
-
-            'success' => true,
-
-            // value of goods returned
-            'return_value' => $returnValue,
-
-            // actual money returned
-            'cash_refund' => $cashRefund,
-
+            'success'        => true,
+            'return_value'   => $returnValue,
+            'cash_refund'    => $cashRefund,
             'fully_refunded' => $allReturned,
-
-            'message' => $cashRefund > 0
-                ? "Return processed. Customer refunded Af " .
-                    number_format($cashRefund, 2)
+            'message'        => $cashRefund > 0
+                ? "Return processed. Customer refunded Af " . number_format($cashRefund, 2)
                 : "Return processed successfully. Loan balance adjusted.",
         ]);
 
     } catch (\Exception $e) {
-
         DB::rollBack();
-
-        return response()->json([
-            'success' => false,
-            'message' => $e->getMessage(),
-        ], 422);
+        return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
     }
 }
 

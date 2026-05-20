@@ -920,7 +920,7 @@
                         });
                         const d = await r.json();
                         if (d.success) {
-                            this.saveMsg = 'Saved successfully';
+                            this.saveMsg = '{{ __('messages.saved_successfully') }}';
                             setTimeout(() => this.saveMsg = '', 3000);
                         }
                     } catch (e) {
@@ -988,7 +988,7 @@
 
                 async saveCategory() {
                     if (!this.cf.name.trim()) {
-                        this.catError = 'Name is required.';
+                        this.catError = '{{ __('messages.name_required') }}';
                         return;
                     }
                     this.saving = true;
@@ -1009,9 +1009,9 @@
                         if (d.success) {
                             this.showCatModal = false;
                             this.loadCategories();
-                        } else this.catError = d.message ?? 'Failed.';
+                        } else this.catError = d.message ?? '{{ __('messages.failed') }}.';
                     } catch (e) {
-                        this.catError = 'Network error.';
+                        this.catError = '{{ __('messages.network_error') }}.';
                     } finally {
                         this.saving = false;
                     }
@@ -1068,7 +1068,7 @@
 
                 async saveAttribute() {
                     if (!this.af.name.trim()) {
-                        this.attrError = 'Name is required.';
+                        this.attrError = '{{ __('messages.name_required') }}.';
                         return;
                     }
                     this.saving = true;
@@ -1089,9 +1089,9 @@
                         if (d.success) {
                             this.showAttrModal = false;
                             this.loadAttributes();
-                        } else this.attrError = d.message ?? 'Failed.';
+                        } else this.attrError = d.message ?? '{{ __('messages.failed') }}.';
                     } catch (e) {
-                        this.attrError = 'Network error.';
+                        this.attrError = '{{ __('messages.network_error') }}.';
                     } finally {
                         this.saving = false;
                     }
@@ -1124,7 +1124,7 @@
 
                 async saveValue() {
                     if (!this.vf.value.trim()) {
-                        this.valueError = 'Value is required.';
+                        this.valueError = '{{ __('messages.value_required') }}.';
                         return;
                     }
                     this.saving = true;
@@ -1145,9 +1145,9 @@
                         if (d.success) {
                             this.showValueModal = false;
                             this.loadAttributes();
-                        } else this.valueError = d.message ?? 'Failed.';
+                        } else this.valueError = d.message ?? '{{ __('messages.failed') }}.';
                     } catch (e) {
-                        this.valueError = 'Network error.';
+                        this.valueError = '{{ __('messages.network_error') }}.';
                     } finally {
                         this.saving = false;
                     }
@@ -1196,7 +1196,7 @@
                         device.message = d.message;
                     } catch (e) {
                         device.status = 'err';
-                        device.message = 'Connection failed';
+                        device.message = '{{ __('messages.connection_failed') }}';
                     } finally {
                         device.testing = false;
                     }

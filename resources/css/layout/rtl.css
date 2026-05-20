@@ -1,0 +1,85 @@
+/* ============================================
+   Global RTL Overrides – works anywhere <html dir="rtl">
+   ============================================ */
+
+[dir="rtl"] body {
+    direction: rtl;
+    text-align: right;
+}
+
+/* Tables */
+[dir="rtl"] table,
+[dir="rtl"] th,
+[dir="rtl"] td {
+    text-align: right;
+}
+[dir="rtl"] .cell-right,
+[dir="rtl"] .text-right {
+    text-align: left !important;
+}
+[dir="rtl"] .cell-mono,
+[dir="rtl"] .mono {
+    direction: ltr;
+    display: inline-block;
+}
+
+/* Inputs and textareas */
+[dir="rtl"] input,
+[dir="rtl"] textarea {
+    direction: rtl;
+}
+[dir="rtl"] input[type="number"],
+[dir="rtl"] input[type="email"],
+[dir="rtl"] input[type="password"],
+[dir="rtl"] .ltr-input {
+    direction: ltr; /* Keep emails / passwords LTR */
+}
+
+/* Buttons and toolbars */
+[dir="rtl"] .flex-row,
+[dir="rtl"] .row,
+[dir="rtl"] .btn-group {
+    flex-direction: row-reverse;
+}
+
+/* Pagination */
+[dir="rtl"] .pagination {
+    flex-direction: row-reverse;
+}
+
+/* Modals */
+[dir="rtl"] .modal-header .close {
+    margin-left: 0;
+    margin-right: auto;
+}
+
+/* Dropdowns */
+[dir="rtl"] .dropdown-menu {
+    text-align: right;
+    right: 0;
+    left: auto;
+}
+
+/* Lists */
+[dir="rtl"] ul,
+[dir="rtl"] ol {
+    padding-left: 0;
+    padding-right: 1.5rem;
+}
+
+/* Avatar / media objects */
+[dir="rtl"] .media,
+[dir="rtl"] .d-flex {
+    flex-direction: row-reverse;
+}
+
+/* Tabs */
+[dir="rtl"] .tab-strip {
+    flex-direction: row-reverse;
+}
+
+/* Tooltips and popovers – keep them positioned correctly */
+[dir="rtl"] .tooltip,
+[dir="rtl"] .popover {
+    text-align: right;
+}

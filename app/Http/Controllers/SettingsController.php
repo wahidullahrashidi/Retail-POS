@@ -27,7 +27,7 @@ class SettingsController extends Controller
     public function index()
     {
         $settings = Setting::all()->mapWithKeys(fn($s) => [
-            $s->key => match($s->type) {
+            $s->key => match ($s->type) {
                 'boolean' => (bool)$s->value,
                 'integer' => (int)$s->value,
                 'json'    => json_decode($s->value, true),
@@ -52,19 +52,37 @@ class SettingsController extends Controller
         $group    = $request->input('group');
         $settings = $request->input('settings');
 
-        // Only update keys that belong to this group
-        $keys = Setting::where('group', $group)->pluck('key')->toArray();
+        // Filter to keys that actually exist for the given group
+        $existingKeys = Setting::where('group', $group)->pluck('key')->toArray();
+        $updates = [];
 
-        foreach ($keys as $key) {
+        foreach ($existingKeys as $key) {
             if (!array_key_exists($key, $settings)) continue;
-
             $value = $settings[$key];
-
-            // Cast booleans to 0/1 for storage
-            if (is_bool($value)) $value = $value ? '1' : '0';
-
-            Setting::where('key', $key)->update(['value' => $value]);
+            if (is_bool($value)) {
+                $value = $value ? '1' : '0';
+            }
+            $updates[$key] = $value;
         }
+
+        if (empty($updates)) {
+            return response()->json(['success' => true]);
+        }
+
+        // Build a single bulk-update using CASE
+        $cases = [];
+        $bindings = [];
+        foreach ($updates as $key => $val) {
+            $cases[] = "WHEN `key` = ? THEN ?";
+            $bindings[] = $key;
+            $bindings[] = $val;
+        }
+
+        $keyPlaceholders = implode(',', array_fill(0, count($updates), '?'));
+        $sql = "UPDATE settings SET `value` = CASE " . implode(' ', $cases) . " END WHERE `key` IN ({$keyPlaceholders}) AND `group` = ?";
+        $bindings = array_merge($bindings, array_keys($updates), [$group]);
+
+        DB::update($sql, $bindings);
 
         return response()->json(['success' => true]);
     }
@@ -77,7 +95,7 @@ class SettingsController extends Controller
     {
         $categories = Category::orderBy('sort_order')
             ->orderBy('name')
-            ->get(['id','parent_id','name','name_ps','name_dr','code','sort_order','is_active','low_stock_threshold']);
+            ->get(['id', 'parent_id', 'name', 'name_ps', 'name_dr', 'code', 'sort_order', 'is_active', 'low_stock_threshold']);
 
         return response()->json($categories);
     }
@@ -264,7 +282,7 @@ class SettingsController extends Controller
         $port   = $request->input('port', '');
 
         try {
-            $result = match($device) {
+            $result = match ($device) {
                 'printer'  => $this->testPrinter($port),
                 'scanner'  => $this->testScanner($port),
                 'drawer'   => $this->testDrawer($port),
@@ -273,7 +291,6 @@ class SettingsController extends Controller
             };
 
             return response()->json(['success' => true, 'message' => $result]);
-
         } catch (\Exception $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()]);
         }

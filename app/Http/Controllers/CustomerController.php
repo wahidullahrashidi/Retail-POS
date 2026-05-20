@@ -17,16 +17,22 @@ class CustomerController extends Controller
     // ══════════════════════════════════════════════
     public function page()
     {
+        // Single aggregate query for loan stats
+        $loanStats = Loan::selectRaw("
+            COUNT(DISTINCT CASE WHEN status = 'active' THEN customer_id END) as with_loans,
+            COUNT(CASE WHEN status = 'overdue' THEN 1 END) as overdue,
+            COALESCE(SUM(CASE WHEN status = 'active' THEN remaining_balance ELSE 0 END), 0) as total_outstanding
+        ")->first();
+
         $stats = [
-            'total'            => Customer::count(),
-            'active'           => Customer::where('is_active', true)->count(),
-            'with_loans'       => Loan::where('status', 'active')
-                                      ->distinct('customer_id')->count('customer_id'),
-            'overdue'          => Loan::where('status', 'overdue')->count(),
-            'total_outstanding'=> Loan::where('status', 'active')->sum('remaining_balance'),
-            'lifetime_sales'   => Sale::whereNotNull('customer_id')
-                                      ->where('status', 'completed')
-                                      ->sum('total_amount'),
+            'total'             => Customer::count(),
+            'active'            => Customer::where('is_active', true)->count(),
+            'with_loans'        => (int) $loanStats->with_loans,
+            'overdue'           => (int) $loanStats->overdue,
+            'total_outstanding' => (float) $loanStats->total_outstanding,
+            'lifetime_sales'    => Sale::whereNotNull('customer_id')
+                                       ->where('status', 'completed')
+                                       ->sum('total_amount'),
         ];
 
         $cities = Customer::whereNotNull('city')
@@ -39,8 +45,7 @@ class CustomerController extends Controller
     }
 
     // ══════════════════════════════════════════════
-    //  INDEX — paginated JSON list
-    //  GET /pos/customers
+    //  INDEX — paginated JSON list (unchanged)
     // ══════════════════════════════════════════════
     public function index(Request $request)
     {
@@ -96,7 +101,6 @@ class CustomerController extends Controller
                 'sale_agg.last_sale_at',
             ]);
 
-        // ── Search ──
         if ($q) {
             $query->where(function ($qb) use ($q) {
                 $qb->where('customers.name',  'like', "%{$q}%")
@@ -105,7 +109,6 @@ class CustomerController extends Controller
             });
         }
 
-        // ── Loan filter ──
         if ($loan === 'has_loan') {
             $query->where('loan_agg.loan_balance', '>', 0);
         } elseif ($loan === 'overdue') {
@@ -116,16 +119,16 @@ class CustomerController extends Controller
                     ->where('loans.status', 'overdue');
             });
         } elseif ($loan === 'no_loan') {
-            $query->whereNull('loan_agg.loan_balance')
+            $query->where(function ($q) {
+                $q->whereNull('loan_agg.loan_balance')
                   ->orWhere('loan_agg.loan_balance', 0);
+            });
         }
 
-        // ── City filter ──
         if ($city) {
             $query->where('customers.city', $city);
         }
 
-        // ── Tab filter ──
         match ($tab) {
             'active'   => $query->where('customers.is_active', true),
             'inactive' => $query->where('customers.is_active', false),
@@ -148,11 +151,10 @@ class CustomerController extends Controller
 
     // ══════════════════════════════════════════════
     //  STORE — create or update customer
-    //  POST /pos/customers/store
     // ══════════════════════════════════════════════
     public function store(Request $request)
     {
-        $isUpdate  = $request->filled('customer_id');
+        $isUpdate   = $request->filled('customer_id');
         $customerId = $request->input('customer_id');
 
         $request->validate([
@@ -198,11 +200,25 @@ class CustomerController extends Controller
     }
 
     // ══════════════════════════════════════════════
-    //  DETAIL — customer detail + recent sales
-    //  GET /pos/customers/{customer}/detail
+    //  DETAIL — optimized with eager aggregates
     // ══════════════════════════════════════════════
     public function detail(Customer $customer)
     {
+        // Load aggregates in one go instead of 6 separate queries
+        $customer->loadCount([
+            'loans as loan_count' => fn($q) => $q->where('status', 'active'),
+        ])->loadSum([
+            'loans as loan_balance' => fn($q) => $q->where('status', 'active'),
+        ], 'remaining_balance')
+        ->loadCount([
+            'sales as sale_count' => fn($q) => $q->where('status', 'completed'),
+        ])->loadSum([
+            'sales as total_purchases' => fn($q) => $q->where('status', 'completed'),
+        ], 'total_amount')
+        ->loadMax([
+            'sales as last_sale_at' => fn($q) => $q->where('status', 'completed'),
+        ], 'created_at');
+
         $recentSales = Sale::where('customer_id', $customer->id)
             ->where('status', 'completed')
             ->select(['id', 'local_id', 'total_amount', 'payment_method', 'created_at'])
@@ -217,33 +233,13 @@ class CustomerController extends Controller
                 'created_at'     => $s->created_at->format('d M Y, h:i A'),
             ]);
 
-        $loanBalance = Loan::where('customer_id', $customer->id)
-            ->where('status', 'active')
-            ->sum('remaining_balance');
-
-        $loanCount = Loan::where('customer_id', $customer->id)
-            ->where('status', 'active')
-            ->count();
-
-        $totalPurchases = Sale::where('customer_id', $customer->id)
-            ->where('status', 'completed')
-            ->sum('total_amount');
-
-        $saleCount = Sale::where('customer_id', $customer->id)
-            ->where('status', 'completed')
-            ->count();
-
-        $lastSale = Sale::where('customer_id', $customer->id)
-            ->where('status', 'completed')
-            ->max('created_at');
-
         return response()->json([
             'customer'     => array_merge($customer->toArray(), [
-                'loan_balance'    => $loanBalance,
-                'loan_count'      => $loanCount,
-                'total_purchases' => $totalPurchases,
-                'sale_count'      => $saleCount,
-                'last_sale_at'    => $lastSale,
+                'loan_balance'    => $customer->loan_balance ?? 0,
+                'loan_count'      => (int) $customer->loan_count,
+                'total_purchases' => $customer->total_purchases ?? 0,
+                'sale_count'      => (int) $customer->sale_count,
+                'last_sale_at'    => $customer->last_sale_at,
             ]),
             'recent_sales' => $recentSales,
         ]);
@@ -251,7 +247,6 @@ class CustomerController extends Controller
 
     // ══════════════════════════════════════════════
     //  LOAN — active loan + payment history
-    //  GET /pos/customers/{customer}/loan
     // ══════════════════════════════════════════════
     public function loan(Customer $customer)
     {
@@ -281,7 +276,6 @@ class CustomerController extends Controller
 
     // ══════════════════════════════════════════════
     //  PAYMENT — record loan payment
-    //  POST /pos/customers/payment
     // ══════════════════════════════════════════════
     public function payment(Request $request)
     {
@@ -337,7 +331,6 @@ class CustomerController extends Controller
 
     // ══════════════════════════════════════════════
     //  TOGGLE ACTIVE
-    //  POST /pos/customers/{customer}/toggle
     // ══════════════════════════════════════════════
     public function toggle(Customer $customer)
     {
@@ -347,7 +340,6 @@ class CustomerController extends Controller
 
     // ══════════════════════════════════════════════
     //  SEARCH — for checkout / POS
-    //  GET /pos/customers/search
     // ══════════════════════════════════════════════
     public function search(Request $request)
     {
@@ -382,7 +374,6 @@ class CustomerController extends Controller
 
     // ══════════════════════════════════════════════
     //  EXPORT CSV
-    //  GET /pos/customers/export
     // ══════════════════════════════════════════════
     public function export(Request $request)
     {
@@ -432,6 +423,9 @@ class CustomerController extends Controller
         return response()->stream($callback, 200, $headers);
     }
 
+    // ══════════════════════════════════════════════
+    //  QUICK STORE — from POS / checkout
+    // ══════════════════════════════════════════════
     public function storeCustomer(Request $request)
     {
         $request->validate([

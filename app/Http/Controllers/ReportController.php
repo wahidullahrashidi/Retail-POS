@@ -530,36 +530,55 @@ class ReportController extends Controller
     // ══════════════════════════════════════════
     private function buildTrendSeries(Carbon $from, Carbon $to, string $granularity, mixed $cashier = null): array
 {
-    $labels = $revenue = $profit = $cash = $loan = [];
-
     if ($granularity === 'hourly' && $from->diffInDays($to) < 2) {
-        // Hourly: still loop 24h – that’s fine
+        // ── Hourly: 1 query with hour grouping ──
+        $hourlyData = Sale::whereBetween('created_at', [$from, $to])
+            ->completed()
+            ->forCashier($cashier)
+            ->selectRaw('HOUR(created_at) as hr,
+                         SUM(total_amount) as rev,
+                         SUM(CASE WHEN payment_method = "cash" THEN total_amount ELSE 0 END) as cash_rev,
+                         SUM(CASE WHEN payment_method = "loan" THEN total_amount ELSE 0 END) as loan_rev')
+            ->groupBy('hr')
+            ->get()
+            ->keyBy('hr');
+
+        // Cost per hour – also a single query
+        $costs = SaleItem::join('sales', 'sales.id', '=', 'sale_items.sale_id')
+            ->whereBetween('sales.created_at', [$from, $to])
+            ->where('sales.status', 'completed')
+            ->when($cashier, fn($q) => $q->where('sales.user_id', $cashier))
+            ->where('sale_items.is_returned', false)
+            ->selectRaw('HOUR(sales.created_at) as hr,
+                         SUM(sale_items.quantity * COALESCE(sale_items.cost_price, 0)) as cost')
+            ->groupBy('hr')
+            ->get()
+            ->keyBy('hr');
+
+        $labels = $revenue = $profit = $cash = $loan = [];
         for ($h = 0; $h < 24; $h++) {
-            $start = $from->copy()->addHours($h);
-            $end   = $from->copy()->addHours($h + 1)->subSecond();
             $labels[] = sprintf('%02d:00', $h);
-            $rev = (float) Sale::whereBetween('created_at',[$start,$end])
-                ->completed()->forCashier($cashier)->sum('total_amount');
+            $rev = (float)($hourlyData[$h]->rev ?? 0);
             $revenue[] = round($rev, 2);
-            $profit[]  = round($rev - $this->costForPeriod($start, $end, $cashier), 2);
-            $cash[]    = round((float) Sale::whereBetween('created_at',[$start,$end])->completed()->forCashier($cashier)->where('payment_method','cash')->sum('total_amount'), 2);
-            $loan[]    = round((float) Sale::whereBetween('created_at',[$start,$end])->completed()->forCashier($cashier)->where('payment_method','loan')->sum('total_amount'), 2);
+            $profit[]  = round($rev - ($costs[$h]->cost ?? 0), 2);
+            $cash[]    = round((float)($hourlyData[$h]->cash_rev ?? 0), 2);
+            $loan[]    = round((float)($hourlyData[$h]->loan_rev ?? 0), 2);
         }
         return [$labels, $revenue, $profit, $cash, $loan, $labels];
     }
 
-    // For daily/weekly/monthly – group by period in one query
+    // ── Daily / Weekly / Monthly: single queries with period grouping ──
     $groupFormat = match ($granularity) {
-        'weekly'  => '%Y-%u',   // ISO week
+        'weekly'  => '%Y-%u',
         'monthly' => '%Y-%m',
-        default   => '%Y-%m-%d', // daily
+        default   => '%Y-%m-%d',
     };
 
     $sales = Sale::whereBetween('created_at', [$from, $to])
         ->completed()
         ->forCashier($cashier)
         ->selectRaw("DATE_FORMAT(created_at, '{$groupFormat}') as period,
-                     SUM(total_amount) as total_rev,
+                     SUM(total_amount) as rev,
                      SUM(CASE WHEN payment_method = 'cash' THEN total_amount ELSE 0 END) as cash_rev,
                      SUM(CASE WHEN payment_method = 'loan' THEN total_amount ELSE 0 END) as loan_rev")
         ->groupBy('period')
@@ -567,7 +586,6 @@ class ReportController extends Controller
         ->get()
         ->keyBy('period');
 
-    // Cost grouped by same period
     $costs = SaleItem::join('sales', 'sales.id', '=', 'sale_items.sale_id')
         ->whereBetween('sales.created_at', [$from, $to])
         ->where('sales.status', 'completed')
@@ -579,7 +597,7 @@ class ReportController extends Controller
         ->get()
         ->keyBy('period');
 
-    // Generate labels and fill arrays
+    $labels = $revenue = $profit = $cash = $loan = [];
     $cursor = $from->copy();
     while ($cursor->lte($to)) {
         $period = $cursor->format(match ($granularity) {
@@ -588,23 +606,22 @@ class ReportController extends Controller
             default   => 'Y-m-d',
         });
         $labels[] = $cursor->format(match ($granularity) {
-            'weekly'  => 'd M',       // e.g., "01 Jan"
+            'weekly'  => 'd M',
             'monthly' => 'M Y',
             default   => 'd M',
         });
 
-        $rev = $sales[$period]->total_rev ?? 0;
-        $revenue[] = round((float) $rev, 2);
-        $profit[]  = round((float) $rev - ($costs[$period]->cost ?? 0), 2);
-        $cash[]    = round((float) ($sales[$period]->cash_rev ?? 0), 2);
-        $loan[]    = round((float) ($sales[$period]->loan_rev ?? 0), 2);
+        $rev = (float)($sales[$period]->rev ?? 0);
+        $revenue[] = round($rev, 2);
+        $profit[]  = round($rev - ($costs[$period]->cost ?? 0), 2);
+        $cash[]    = round((float)($sales[$period]->cash_rev ?? 0), 2);
+        $loan[]    = round((float)($sales[$period]->loan_rev ?? 0), 2);
 
-        // Advance cursor
-        switch ($granularity) {
-            case 'weekly':  $cursor->addWeek(); break;
-            case 'monthly': $cursor->addMonth(); break;
-            default:        $cursor->addDay();   break;
-        }
+        match ($granularity) {
+            'weekly'  => $cursor->addWeek(),
+            'monthly' => $cursor->addMonth(),
+            default   => $cursor->addDay(),
+        };
     }
 
     return [$labels, $revenue, $profit, $cash, $loan, $labels];
@@ -653,19 +670,28 @@ private function costForPeriod(Carbon $start, Carbon $end, mixed $cashier = null
     // }
 
     private function buildLoanSeries(Carbon $from, Carbon $to, array $labels): array
-    {
-        $issued    = [];
-        $collected = [];
-        $cursor    = $from->copy();
+{
+    $issued = Loan::whereBetween('created_at', [$from, $to->copy()->endOfDay()])
+        ->selectRaw('DATE(created_at) as day, SUM(original_amount) as total')
+        ->groupBy('day')
+        ->pluck('total', 'day');
 
-        foreach ($labels as $_) {
-            $end = $cursor->copy()->endOfDay();
-            $issued[]    = round(Loan::whereBetween('created_at',[$cursor->copy()->startOfDay(),$end])->sum('original_amount'), 2);
-            $collected[] = round(LoanPayment::whereBetween('created_at',[$cursor->copy()->startOfDay(),$end])->sum('amount'), 2);
-            $cursor->addDay();
-            if ($cursor->gt($to)) break;
-        }
+    $collected = LoanPayment::whereBetween('created_at', [$from, $to->copy()->endOfDay()])
+        ->selectRaw('DATE(created_at) as day, SUM(amount) as total')
+        ->groupBy('day')
+        ->pluck('total', 'day');
 
-        return [$issued, $collected];
+    $issuedSeries = [];
+    $collectedSeries = [];
+    $cursor = $from->copy();
+    foreach ($labels as $_) {
+        $dayKey = $cursor->format('Y-m-d');
+        $issuedSeries[]    = round((float)($issued[$dayKey] ?? 0), 2);
+        $collectedSeries[] = round((float)($collected[$dayKey] ?? 0), 2);
+        $cursor->addDay();
+        if ($cursor->gt($to)) break;
     }
+
+    return [$issuedSeries, $collectedSeries];
+}
 }

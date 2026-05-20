@@ -17,23 +17,35 @@ class SupplierController extends Controller
     //  PAGE — blade with stats
     // ══════════════════════════════════════════
     public function page()
-    {
-        $stats = [
-            'total'           => Supplier::count(),
-            'active'          => Supplier::where('is_active', true)->count(),
-            'open_pos'        => Purchase::whereIn('status', ['ordered', 'partial'])->count(),
-            'unpaid'          => Purchase::whereIn('payment_status', ['unpaid', 'partial'])
-                                         ->selectRaw('SUM(total_cost - amount_paid) as bal')
-                                         ->value('bal') ?? 0,
-            'total_purchased' => Purchase::where('status', '!=', 'cancelled')->sum('total_cost'),
-        ];
+{
+    // 1) Supplier counts – one query
+    $supplierStats = Supplier::selectRaw("
+        COUNT(*) as total,
+        COUNT(CASE WHEN is_active = 1 THEN 1 END) as active
+    ")->first();
 
-        $cities = Supplier::whereNotNull('city')
-                          ->where('city', '!=', '')
-                          ->distinct()->orderBy('city')->pluck('city');
+    // 2) Purchase aggregates – one query
+    $purchaseStats = Purchase::where('status', '!=', 'cancelled')
+        ->selectRaw("
+            COALESCE(SUM(total_cost), 0) as total_purchased,
+            COALESCE(SUM(total_cost - amount_paid), 0) as unpaid,
+            COUNT(CASE WHEN status IN ('ordered','partial') THEN 1 END) as open_pos
+        ")->first();
 
-        return view('inventory.suppliers', compact('stats', 'cities'));
-    }
+    $stats = [
+        'total'           => (int) $supplierStats->total,
+        'active'          => (int) $supplierStats->active,
+        'open_pos'        => (int) $purchaseStats->open_pos,
+        'unpaid'          => (float) $purchaseStats->unpaid,
+        'total_purchased' => (float) $purchaseStats->total_purchased,
+    ];
+
+    $cities = Supplier::whereNotNull('city')
+                      ->where('city', '!=', '')
+                      ->distinct()->orderBy('city')->pluck('city');
+
+    return view('inventory.suppliers', compact('stats', 'cities'));
+}
 
     // ══════════════════════════════════════════
     //  INDEX — paginated supplier JSON

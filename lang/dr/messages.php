@@ -76,6 +76,8 @@ return [
     'stock' => 'موجودی',
     'current_stock' => 'موجودی فعلی',
     'low_stock' => 'موجودی کم',
+    'low_stock_threshold' => 'آستانه کم موجودی',
+
     'out_of_stock' => 'ناموجود',
     'healthy_stock' => 'موجودی مناسب',
     'adjust_stock' => 'تنظیم موجودی',
@@ -105,6 +107,9 @@ return [
     'reason_for_refund' => 'دلیل استرداد',
     'test_connection' => 'تست اتصال',
     'activity_log' => 'گزارش فعالیت',
+'dropbox' => 'دراف باکس',
+    'catalog' => 'کتلاګ',
+
 
     'returned' => 'برگشت داده شد',
     'shifts' => 'شیفت‌ها',
@@ -255,9 +260,19 @@ return [
     'confirm' => 'تأیید',
     'save_changes' => 'ذخیره تغییرات',
     'saved_successfully' => 'با موفقیت ذخیره شد',
-    'network_error' => 'خطای شبکه',
     'network_error_try_again' => 'خطای شبکه. دوباره تلاش کنید.',
     'error' => 'خطا',
+    'product_categories_sub' => 'محصولات را به صورت سلسله مراتبی سازماندهی کنید',
+    'daily_backup_sub' => 'هر روز در ساعت مشخص اجرا می‌شود',
+
+    'sync_records' => 'همگام سازی رکوردها',
+    'sync_status_by_table' => 'وضعیت همگام‌سازی بر اساس تیبل',
+    'sync_all' => 'همگام سازی همه',
+    'stored_in' => 'ذخیره شده در',
+
+
+
+
     'unauthorized_action' => 'شما اجازه انجام این عمل را ندارید.',
     'thank_you' => 'از خرید شما سپاسگزاریم',
     'thank_you_shopping' => 'از خرید شما سپاسگزاریم',
@@ -793,6 +808,9 @@ return [
     'backup_s_stored' => 'بکاپ(ها) ذخیره شد',
     'cloud_configuration' => 'پیکربندی ابری',
     'cloud_local' => 'ابری + محلی',
+    'local' => 'محلی',
+    'last_backup' => 'آخرین بکاپ',
+
     'midnight' => 'نیمه‌شب',
     'no_backups_yet' => 'هنوز هیچ بکاپی وجود ندارد',
     'no_provider_set' => 'هیچ ارائه‌دهنده‌ای تنظیم نشده',
@@ -976,7 +994,6 @@ return [
     'pay_full_balance' => 'پرداخت کامل بدهی',
     'pay_half' => 'پرداخت نصف',
 
-    'saving' => 'در حال ذخیره…',
 
     // Supplier Modal
     'edit_supplier' => 'ویرایش تامین کننده',
@@ -991,6 +1008,13 @@ return [
     'payment_schedule_hint' => 'برنامه پرداخت توافق شده با این تامین کننده',
     'optional_notes' => 'یادداشت‌های اختیاری درباره این تامین کننده…',
     'update_supplier' => 'به‌روزرسانی تامین کننده',
+    'schedule_settings_saved' => 'تنظیمات زمانبندی ذخیره شد',
+    'cloud_configuration_saved' => 'پیکربندی کلاود ذخیره شد',
+    'failed_to_save_cloud config' => 'ذخیره پیکربندی کلاود ناموفق بود',
+    'testing_connection' => 'تست اتصال',
+
+
+
 
     // General
     'ref' => 'مرجع',

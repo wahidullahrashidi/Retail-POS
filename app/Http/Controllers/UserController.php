@@ -19,19 +19,20 @@ class UserController extends Controller
     //  PAGE — blade with stats
     // ══════════════════════════════════════════
     public function page()
-    {
-        $roles = Role::orderBy('name')->get();
+{
+    $roles = Role::orderBy('name')->get();
 
-        $stats = [
-            'total'    => User::count(),
-            'active'   => User::where('is_active', true)->count(),
-            'admins'   => User::whereHas('role', fn($q) => $q->where('name', 'admin'))->count(),
-            'managers' => User::whereHas('role', fn($q) => $q->where('name', 'manager'))->count(),
-            'cashiers' => User::whereHas('role', fn($q) => $q->where('name', 'cashier'))->count(),
-        ];
+    $stats = User::leftJoin('roles', 'roles.id', '=', 'users.role_id')
+        ->selectRaw("
+            COUNT(*) as total,
+            COUNT(CASE WHEN users.is_active = 1 THEN 1 END) as active,
+            COUNT(CASE WHEN roles.name = 'admin' THEN 1 END) as admins,
+            COUNT(CASE WHEN roles.name = 'manager' THEN 1 END) as managers,
+            COUNT(CASE WHEN roles.name = 'cashier' THEN 1 END) as cashiers
+        ")->first();
 
-        return view('system.users', compact('stats', 'roles'));
-    }
+    return view('system.users', compact('stats', 'roles'));
+}
 
     // ══════════════════════════════════════════
     //  INDEX — JSON user list
@@ -234,61 +235,63 @@ class UserController extends Controller
     //  GET /pos/users/{user}/detail
     // ══════════════════════════════════════════
     public function detail(User $user)
-    {
-        $recentShifts = Shift::where('user_id', $user->id)
-            ->orderByDesc('opened_at')
-            ->limit(5)
-            ->get()
-            ->map(function ($s) {
-                $totalSales = Sale::where('shift_id', $s->id)
-                    ->where('status', 'completed')
-                    ->sum('total_amount');
+{
+    // Load user aggregates in 3 queries (instead of 3 separate ones)
+    $user->loadCount([
+        'sales as sale_count' => fn($q) => $q->where('status', 'completed'),
+    ])->loadSum([
+        'sales as total_sales' => fn($q) => $q->where('status', 'completed'),
+    ], 'total_amount')
+    ->loadCount('shifts as shift_count');
 
-                $duration = '—';
-                if ($s->closed_at) {
-                    $mins = Carbon::parse($s->opened_at)->diffInMinutes(Carbon::parse($s->closed_at));
-                    $duration = $mins >= 60
-                        ? floor($mins / 60) . 'h ' . ($mins % 60) . 'm'
-                        : $mins . 'm';
-                }
+    // Load recent shifts with total sales preloaded (one query)
+    $recentShifts = Shift::where('user_id', $user->id)
+        ->orderByDesc('opened_at')
+        ->limit(5)
+        ->withSum(['sales as total_sales' => fn($q) => $q->where('status', 'completed')], 'total_amount')
+        ->get()
+        ->map(function ($s) {
+            $duration = '—';
+            if ($s->closed_at) {
+                $mins = Carbon::parse($s->opened_at)->diffInMinutes(Carbon::parse($s->closed_at));
+                $duration = $mins >= 60
+                    ? floor($mins / 60) . 'h ' . ($mins % 60) . 'm'
+                    : $mins . 'm';
+            }
 
-                return [
-                    'id'          => $s->id,
-                    'opened_at'   => Carbon::parse($s->opened_at)->format('d M Y, H:i'),
-                    'duration'    => $duration,
-                    'total_sales' => (float)$totalSales,
-                    'is_closed'   => (bool)$s->is_closed,
-                ];
-            });
+            return [
+                'id'          => $s->id,
+                'opened_at'   => Carbon::parse($s->opened_at)->format('d M Y, H:i'),
+                'duration'    => $duration,
+                'total_sales' => (float) ($s->total_sales ?? 0),  // from withSum
+                'is_closed'   => (bool) $s->is_closed,
+            ];
+        });
 
-        $saleCount   = Sale::where('user_id', $user->id)->where('status', 'completed')->count();
-        $totalSales  = Sale::where('user_id', $user->id)->where('status', 'completed')->sum('total_amount');
-        $shiftCount  = Shift::where('user_id', $user->id)->count();
+    $role        = $user->role;
+    $permissions = $this->mergePermissions($role?->permissions, $user->permissions);
 
-        $role        = $user->role;
-        $permissions = $this->mergePermissions($role?->permissions, $user->permissions);
-
-        return response()->json([
-            'user' => [
-                'id'           => $user->id,
-                'name'         => $user->name,
-                'email'        => $user->email,
-                'photo'        => $user->photo,
-                'role_id'      => $user->role_id,
-                'role_name'    => $role?->name,
-                'role_display' => $role?->display_name,
-                'permissions'  => $permissions,
-                'has_pin'      => !empty($user->pin_code),
-                'is_active'    => (bool)$user->is_active,
-                'sale_count'   => $saleCount,
-                'total_sales'  => (float)$totalSales,
-                'shift_count'  => $shiftCount,
-                'created_at'   => Carbon::parse($user->created_at)->format('d M Y'),
-                'last_login'   => null,
-            ],
-            'shifts' => $recentShifts,
-        ]);
-    }
+    return response()->json([
+        'user' => [
+            'id'           => $user->id,
+            'name'         => $user->name,
+            'email'        => $user->email,
+            'photo'        => $user->photo,
+            'role_id'      => $user->role_id,
+            'role_name'    => $role?->name,
+            'role_display' => $role?->display_name,
+            'permissions'  => $permissions,
+            'has_pin'      => !empty($user->pin_code),
+            'is_active'    => (bool) $user->is_active,
+            'sale_count'   => (int) $user->sale_count,
+            'total_sales'  => (float) $user->total_sales,
+            'shift_count'  => (int) $user->shift_count,
+            'created_at'   => Carbon::parse($user->created_at)->format('d M Y'),
+            'last_login'   => null,
+        ],
+        'shifts' => $recentShifts,
+    ]);
+}
 
     // ══════════════════════════════════════════
     //  RESET PASSWORD

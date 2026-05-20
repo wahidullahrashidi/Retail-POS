@@ -1,6 +1,7 @@
 <?php
 
 namespace App\Http\Controllers;
+
 use App\Models\Loan;
 use App\Models\Sale;
 use App\Models\SaleItem;
@@ -8,13 +9,11 @@ use App\Models\Customer;
 use App\Models\ProductVariant;
 use Carbon\Carbon;
 use App\Models\Shift;
-
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
-
     public function index()
     {
         $activeShift = Shift::where('user_id', auth()->id())
@@ -26,11 +25,10 @@ class DashboardController extends Controller
         }
 
         $data = $this->getDashboardData();
-        $data['activeShift'] = $activeShift; // just add it to the array
+        $data['activeShift'] = $activeShift;
 
         return view('pos.dashboard', $data);
     }
-
 
     private function getDashboardData(): array
     {
@@ -39,79 +37,120 @@ class DashboardController extends Controller
         $yesterdayStart = Carbon::yesterday()->startOfDay();
         $yesterdayEnd = Carbon::yesterday()->endOfDay();
 
-        $yesterdaySales = Sale::completed()
-            ->betweenDates($yesterdayStart, $yesterdayEnd)
-            ->sum('total_amount');
+        // -------------------------------------------------
+        // 1. Sales – one query instead of two
+        // -------------------------------------------------
+        $saleStats = Sale::completed()
+            ->selectRaw("
+                COALESCE(SUM(CASE WHEN created_at BETWEEN ? AND ? THEN total_amount ELSE 0 END), 0) as today_sales,
+                COALESCE(SUM(CASE WHEN created_at BETWEEN ? AND ? THEN total_amount ELSE 0 END), 0) as yesterday_sales
+            ", [
+                $todayStart, $todayEnd,
+                $yesterdayStart, $yesterdayEnd,
+            ])
+            ->first();
 
-        $todaySales = Sale::completed()
-            ->betweenDates($todayStart, $todayEnd)
-            ->sum('total_amount');
+        $todaySales = (float) $saleStats->today_sales;
+        $yesterdaySales = (float) $saleStats->yesterday_sales;
 
-        // getting loans:
-        // today
-        $todayLoan = Loan::whereBetween('created_at', [$todayStart, $todayEnd])->sum('remaining_balance');
+        // -------------------------------------------------
+        // 2. Loans – one query instead of two
+        // -------------------------------------------------
+        $loanStats = Loan::whereBetween('created_at', [$yesterdayStart, $todayEnd])
+            ->selectRaw("
+                COALESCE(SUM(CASE WHEN created_at BETWEEN ? AND ? THEN remaining_balance ELSE 0 END), 0) as today_loan,
+                COALESCE(SUM(CASE WHEN created_at BETWEEN ? AND ? THEN remaining_balance ELSE 0 END), 0) as yesterday_loan
+            ", [
+                $todayStart, $todayEnd,
+                $yesterdayStart, $yesterdayEnd,
+            ])
+            ->first();
 
-        // yesterday:
-        $yesterdayLoan = Loan::whereBetween('created_at', [$yesterdayStart, $yesterdayEnd])
-            ->sum('remaining_balance');
+        $todayLoan = (float) $loanStats->today_loan;
+        $yesterdayLoan = (float) $loanStats->yesterday_loan;
 
-        $salesToday = $todaySales;
-        $costToday = $this->costOfGoods($todayStart, $todayEnd);
+        // -------------------------------------------------
+        // 3. Cost of goods – one query instead of two
+        // -------------------------------------------------
+        $costStats = SaleItem::join('sales', 'sales.id', '=', 'sale_items.sale_id')
+            ->whereBetween('sales.created_at', [$yesterdayStart, $todayEnd])
+            ->where('sales.status', 'completed')
+            ->where('sale_items.is_returned', false)
+            ->selectRaw("
+                COALESCE(SUM(CASE WHEN sales.created_at BETWEEN ? AND ? THEN sale_items.quantity * COALESCE(sale_items.cost_price, 0) ELSE 0 END), 0) as cost_today,
+                COALESCE(SUM(CASE WHEN sales.created_at BETWEEN ? AND ? THEN sale_items.quantity * COALESCE(sale_items.cost_price, 0) ELSE 0 END), 0) as cost_yesterday
+            ", [
+                $todayStart, $todayEnd,
+                $yesterdayStart, $yesterdayEnd,
+            ])
+            ->first();
 
-        $salesYesterday = $yesterdaySales;
-        $costYesterday = $this->costOfGoods($yesterdayStart, $yesterdayEnd);
+        $costToday = (float) $costStats->cost_today;
+        $costYesterday = (float) $costStats->cost_yesterday;
 
-        $netProfitToday = $salesToday - $costToday;
-        $netProfitYesterday = $salesYesterday - $costYesterday;
+        // -------------------------------------------------
+        // 4. Customers – one query instead of two
+        // -------------------------------------------------
+        $customerStats = Customer::whereBetween('created_at', [$yesterdayStart, $todayEnd])
+            ->selectRaw("
+                COALESCE(COUNT(CASE WHEN created_at BETWEEN ? AND ? THEN 1 ELSE NULL END), 0) as today_count,
+                COALESCE(COUNT(CASE WHEN created_at BETWEEN ? AND ? THEN 1 ELSE NULL END), 0) as yesterday_count
+            ", [
+                $todayStart, $todayEnd,
+                $yesterdayStart, $yesterdayEnd,
+            ])
+            ->first();
 
-        // customers:
-        $customersToday = Customer::whereBetween('created_at', [$todayStart, $todayEnd])->count();
-        $customersYesterday = Customer::whereBetween('created_at', [$yesterdayStart, $yesterdayEnd])->count();
+        $customersToday = (int) $customerStats->today_count;
+        $customersYesterday = (int) $customerStats->yesterday_count;
 
-        // recent transactions:
-
-        $transactions = Loan::recentTransactions()->get();
-
-        // low stock alert:
-        $lowStockItems = ProductVariant::lowStack()->get();
+        // -------------------------------------------------
+        // Calculations that rely on the numbers above
+        // -------------------------------------------------
+        $netProfitToday = $todaySales - $costToday;
+        $netProfitYesterday = $yesterdaySales - $costYesterday;
 
         try {
-            $netProfitPercentage = (($netProfitToday - $netProfitYesterday) / $netProfitYesterday) * 100;
-            $loanPercentage = ($todayLoan - $yesterdayLoan)/$yesterdayLoan * 100;
-            $customersPercentage = (($customersToday - $customersYesterday) / $customersYesterday) * 100;
-
+            $netProfitPercentage = $yesterdaySales != 0
+                ? (($netProfitToday - $netProfitYesterday) / $netProfitYesterday) * 100
+                : 100;
+            $loanPercentage = $yesterdayLoan != 0
+                ? (($todayLoan - $yesterdayLoan) / $yesterdayLoan) * 100
+                : 100;
+            $customersPercentage = $customersYesterday != 0
+                ? (($customersToday - $customersYesterday) / $customersYesterday) * 100
+                : 100;
         } catch (\DivisionByZeroError $e) {
+            // Fallback – should never be reached now, but kept for safety
             $netProfitPercentage = 100;
             $loanPercentage = 100;
             $customersPercentage = 100;
         }
 
+        // -------------------------------------------------
+        // Non‑aggregated data (still separate, but fast)
+        // -------------------------------------------------
+        $transactions = Loan::recentTransactions()->get();
+        $lowStockItems = ProductVariant::lowStack()->get();
+
         return [
-            'todaySales' => $todaySales,
-            'yesterdaySales' => $yesterdaySales,
-            'loanToday' => $todayLoan,
-            'loanYesterday' => $yesterdayLoan,
-            'loanPercentage' => $loanPercentage,
-            'todaysCustomers' => $customersToday,
-            'yesterdayCustomers' => $customersYesterday,
+            'todaySales'          => $todaySales,
+            'yesterdaySales'      => $yesterdaySales,
+            'loanToday'           => $todayLoan,
+            'loanYesterday'       => $yesterdayLoan,
+            'loanPercentage'      => $loanPercentage,
+            'todaysCustomers'     => $customersToday,
+            'yesterdayCustomers'  => $customersYesterday,
             'customersPercentage' => $customersPercentage,
-            'netProfitToday' => $netProfitToday,
-            'netProfitYesterday' => $netProfitYesterday,
+            'netProfitToday'      => $netProfitToday,
+            'netProfitYesterday'  => $netProfitYesterday,
             'netProfitPercentage' => $netProfitPercentage,
-            'recentTransactions' => $transactions,
-            'lowStock' => $lowStockItems
+            'recentTransactions'  => $transactions,
+            'lowStock'            => $lowStockItems,
         ];
     }
 
-    private function costOfGoods(Carbon $from, Carbon $to): float
-    {
-        return (float) SaleItem::join('sales', 'sales.id', '=', 'sale_items.sale_id')
-            ->whereBetween('sales.created_at', [$from, $to])
-            ->where('sales.status', 'completed')
-            ->where('sale_items.is_returned', false)
-            ->sum(DB::raw('sale_items.quantity * COALESCE(sale_items.cost_price, 0)'));
-    }
-
+    // (The rest of your methods remain unchanged)
     public function searchProducts(Request $request)
     {
         $q = trim($request->input('q', ''));
@@ -145,6 +184,7 @@ class DashboardController extends Controller
 
         return response()->json($variants);
     }
+
     public function trendingProducts()
     {
         $variants = ProductVariant::query()
@@ -193,16 +233,8 @@ class DashboardController extends Controller
             return back()->with('error', 'Cart is empty.');
         }
 
-        // Pass cart to your checkout view or process it
-        // Option A — show a checkout confirmation page:
         session()->flash('checkout_cart', $cartItems);
 
         return redirect()->route('pos.poscheck');
-
-        // Option B — process immediately and create a Sale record:
-        // $this->processSale($cartItems, $request);
-        // return redirect()->route('pos.dashboard')->with('success', 'Sale completed!');
     }
-
-    
 }

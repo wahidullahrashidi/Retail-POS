@@ -1051,7 +1051,7 @@
                             body: JSON.stringify(this.schedule)
                         });
                     } catch (e) {}
-                    this.addLog('success', 'Schedule settings saved.');
+                    this.addLog('success', '{{ __('messages.schedule_settings_saved') }}.');
                 },
 
                 /* ── Cloud config ── */
@@ -1066,15 +1066,15 @@
                             body: JSON.stringify(this.cloudConfig)
                         });
                         const d = await r.json();
-                        if (d.success) this.addLog('success', 'Cloud configuration saved.');
+                        if (d.success) this.addLog('success', '{{ __('messages.cloud_configuration_saved') }}.');
                         else this.addLog('error', d.message);
                     } catch (e) {
-                        this.addLog('error', 'Failed to save cloud config.');
+                        this.addLog('error', '{{ __('messages.failed_to_save_cloud config') }}.');
                     }
                 },
 
                 async testCloudConnection() {
-                    this.cloudTestResult = 'Testing connection…';
+                    this.cloudTestResult = '{{ __('messages.testing_connection') }}…';
                     this.cloudTestOk = false;
                     try {
                         const r = await fetch(this.urls.cloudTest, {
@@ -1092,7 +1092,7 @@
                         this.cloudTestResult = d.message;
                     } catch (e) {
                         this.cloudTestOk = false;
-                        this.cloudTestResult = 'Connection test failed: ' + e.message;
+                        this.cloudTestResult = '{{ __('messages.connection_failed') }}: ' + e.message;
                     }
                 },
 
